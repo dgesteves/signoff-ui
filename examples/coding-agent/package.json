@@ -10,9 +10,9 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@ai-sdk/openai": "^4.0.84",
-    "@ai-sdk/react": "^4.0.131",
-    "ai": "^7.0.128",
+    "@ai-sdk/openai": "^4.0.91",
+    "@ai-sdk/react": "^4.0.140",
+    "ai": "^7.0.137",
     "geist": "^1.7.2",
     "next": "^16.4.0",
     "react": "^19.3.0",
