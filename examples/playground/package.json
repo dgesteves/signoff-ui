@@ -29,7 +29,7 @@
     "rxjs": "7.8.1",
     "shiki": "^4.5.0",
     "signoff-ui": "workspace:*",
-    "zod": "^4.6.5"
+    "zod": "^4.6.6"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.3",
