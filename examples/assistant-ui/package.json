@@ -9,7 +9,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@assistant-ui/react": "^0.15.26",
+    "@assistant-ui/react": "^0.15.27",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "signoff-ui": "latest"
