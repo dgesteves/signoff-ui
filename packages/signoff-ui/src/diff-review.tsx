@@ -21,11 +21,12 @@ import type { DiffHunk, DiffLine, HunkDecision, ParsedFileDiff } from './lib/dif
 import { gapLines, type ContextGap, type DiffReviewComment } from './lib/review';
 import { mergeTokensWithSegments, TOKEN_CLASS, tokenizeLine } from './lib/highlight';
 import { useScrollRegion } from './lib/scroll-region';
-import { hasHidden, MARK_CLASS, revealText } from './lib/untrusted';
+import { Revealed } from './lib/revealed';
+import { hasHidden } from './lib/untrusted';
 import { ArrowDownIcon, ArrowUpIcon, CheckIcon, ChevronIcon, CommentIcon, UndoIcon, XIcon } from './lib/icons';
 import { Kbd, LiveRegion } from './lib/primitives';
 import { cn, type HeadingLevel } from './lib/utils';
-import { diffReviewLabels, commonLabels, untrustedLabels } from './lib/labels';
+import { diffReviewLabels, commonLabels } from './lib/labels';
 import { useLabels, WithLabels } from './labels';
 import {
   CONTEXT_STEP,
@@ -38,7 +39,7 @@ import {
 } from './use-diff-review';
 
 /** The labels' sections this module reads. */
-const LABELS = { diffReview: diffReviewLabels, common: commonLabels, untrusted: untrustedLabels };
+const LABELS = { diffReview: diffReviewLabels, common: commonLabels };
 
 export type { DiffWorkerFactory } from './lib/diff-async';
 export type { FileChange, HunkDecision } from './lib/diff';
@@ -617,28 +618,6 @@ const secondaryButton =
 const smallButton =
   'inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-md border px-2 text-xs font-medium whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-signoff-ring';
 
-/**
- * Text from the agent, with marks in place of what does not show, so a path or a line reads as
- * what it is: see `revealText`. `blanks` marks long runs of spaces too, for a path.
- */
-function Revealed({ text, blanks = false }: { text: string; blanks?: boolean }) {
-  const L = useLabels(LABELS).untrusted;
-  return (
-    <>
-      {revealText(text, { blanks }).map((part, i) => {
-        if (typeof part === 'string') return part;
-        const name = part.kind === 'blank' ? L.blank(part.count) : L.invisible(part.count, part.codes);
-        return (
-          <span key={i} data-slot="signoff-untrusted" data-kind={part.kind} title={name} className={MARK_CLASS}>
-            <span aria-hidden="true">{part.shown}</span>
-            <span className="sr-only">{name}</span>
-          </span>
-        );
-      })}
-    </>
-  );
-}
-
 function PathLabel({ path, oldPath }: { path: string; oldPath?: string | undefined }) {
   const T = useLabels(LABELS).diffReview;
   const slash = path.lastIndexOf('/');
@@ -963,7 +942,8 @@ const WholeFile = memo(function WholeFile({
   const T = useLabels(LABELS).diffReview;
   const parsed = file.parsed!;
   const id = `${file.id}:file`;
-  const note = T.wholeFile(parsed.status, !!parsed.binary, parsed.oldPath ?? file.path);
+  const notePath = parsed.oldPath ?? file.path;
+  const note = T.wholeFile(parsed.status, !!parsed.binary, notePath);
   return (
     // A roving-tabindex item: focus tracking only, all actions are buttons.
     <div
@@ -977,7 +957,10 @@ const WholeFile = memo(function WholeFile({
       className={itemClass(decision)}
     >
       <div className="bg-signoff-bg/35 flex min-h-9 items-center gap-2 py-1 pr-2 pl-4">
-        <span className="text-signoff-fg-muted min-w-0 truncate text-xs">{note}</span>
+        <span className="text-signoff-fg-muted min-w-0 truncate text-xs">
+          {/* The path in it is the agent's: it shows marks as the header does, when it has any. */}
+          {hasHidden(notePath) ? <Revealed text={note} /> : note}
+        </span>
         <DecisionBadge decision={decision} />
         {!readOnly && (
           <DecisionButtons

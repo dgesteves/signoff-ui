@@ -13,8 +13,8 @@ import { axe } from './utils';
 /*
  * The person who approves a command or reviews a diff reads what the agent wrote, which a prompt
  * injection can write too. Text that shows something other than what runs is made visible: bidi
- * controls, zero-width and other invisible characters, a run of spaces long enough to push the rest
- * of a command out of view, and a link whose text names another host than the one it goes to.
+ * controls, zero-width and other invisible characters, long runs of spaces, the end of a command
+ * that filler would push out of view, and a link whose text names another host than the one it goes to.
  */
 
 const RLO = '\u202E';
@@ -51,6 +51,23 @@ describe('ApprovalCard: a command shows what runs', () => {
     expect(card()).toHaveTextContent('240 blank characters');
   });
 
+  it('wraps the command, so no filler before its end pushes that end out of view', () => {
+    // Runs of 15 spaces, under the length that shows as a count, each followed by a dot or by a
+    // combining accent, which sits on the space before it and hardly shows.
+    for (const filler of ['.', '\u0301']) {
+      const command = `npm test${(' '.repeat(15) + filler).repeat(16)} --script-shell=./x.sh`;
+      const { unmount } = render(<ApprovalCard toolName="run_command" input={{ command, cwd: '~/app' }} />);
+      const line = within(card()).getByText(/--script-shell=\.\/x\.sh$/);
+      expect(line.textContent).toBe(`$${command}`);
+      // A box that scrolls sideways (whitespace-pre) would leave the end out of view: this one wraps,
+      // anywhere if it has to, and so does the cwd.
+      expect(line).toHaveClass('whitespace-pre-wrap', '[overflow-wrap:anywhere]');
+      expect(line).not.toHaveClass('whitespace-pre');
+      expect(within(card()).getByText('~/app')).toHaveClass('whitespace-pre-wrap', '[overflow-wrap:anywhere]');
+      unmount();
+    }
+  });
+
   it('shows a command with no such characters as it is', () => {
     const command = 'git commit -m "fix: lint ✨ ❤\uFE0F 👩\u200D💻"\r\n\techo   done';
     const { container } = render(<ApprovalCard toolName="run_command" input={{ command }} />);
@@ -79,6 +96,19 @@ describe('DiffReview: paths and lines show what is there', () => {
     // The file navigator too.
     expect(visibleText(screen.getByRole('navigation'))).toContain('notesU+202Egpj.exe');
     expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it('shows them in the note of a file renamed without changes', () => {
+    const { container } = render(
+      <DiffReview
+        files={[{ path: 'src/notes.sh', oldPath: `src/notes${RLO}txt.sh`, oldContent: 'a\n', newContent: 'a\n' }]}
+      />,
+    );
+    const note = screen.getByText(/^Renamed from/);
+    expect(visibleText(note)).toBe('Renamed from src/notesU+202Etxt.sh, without changes.');
+    expect(note).toHaveTextContent('Invisible character U+202E');
+    // The header's path shows it too, so no U+202E is left anywhere a person reads.
+    expect(visibleText(container)).not.toContain(RLO);
   });
 });
 
@@ -252,6 +282,27 @@ describe('linkHostMismatch', () => {
     expect(linkHostMismatch('https://github.com', '//evil.example/x')).toBe('evil.example');
     // Text a bidi override turns around.
     expect(linkHostMismatch(`${RLO}moc.buhtig//:sptth`, 'https://evil.example')).toBe('evil.example');
+  });
+
+  it('names the host when the URL puts a name before it, whatever the text says', () => {
+    // An autolink: the text is the URL, which reads as github.com and goes to evil.example.
+    const spoof = 'https://github.com@evil.example/x';
+    expect(linkHostMismatch(spoof, spoof)).toBe('evil.example');
+    expect(linkHostMismatch('the docs', 'https://github.com:pass@evil.example/')).toBe('evil.example');
+  });
+
+  it('reads a file name whose extension is a top-level domain as a domain, unless the link goes to that file', () => {
+    expect(linkHostMismatch('docs.rs', 'https://evil.example/login')).toBe('evil.example');
+    expect(linkHostMismatch('bun.sh', 'https://evil.example/login')).toBe('evil.example');
+    expect(linkHostMismatch('vercel.sh', 'https://evil.example/login')).toBe('evil.example');
+    expect(linkHostMismatch('get.zip', 'https://evil.example/')).toBe('evil.example');
+    expect(linkHostMismatch('README.md', 'https://evil.example/login')).toBe('evil.example');
+    // The link goes to the file the text names, or to the host it names.
+    expect(linkHostMismatch('setup.py', 'https://github.com/a/b/blob/main/setup.py')).toBeUndefined();
+    expect(linkHostMismatch('install.sh', 'https://example.com/scripts/install.sh?raw=1')).toBeUndefined();
+    expect(linkHostMismatch('docs.rs', 'https://docs.rs/serde')).toBeUndefined();
+    // Other extensions are no domain: the name is a file's wherever the link goes.
+    expect(linkHostMismatch('package.json', 'https://github.com/a/b')).toBeUndefined();
   });
 
   it('names nothing when the text names the same host, or none', () => {

@@ -4,7 +4,7 @@ Review what your agent changed and approve what it may do: React components for 
 
 [![CI](https://img.shields.io/github/actions/workflow/status/dgesteves/signoff-ui/ci.yml?branch=main&label=CI&labelColor=0d0f12)](https://github.com/dgesteves/signoff-ui/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/signoff-ui?labelColor=0d0f12&color=0e7490)](https://www.npmjs.com/package/signoff-ui)
-[![gzip per import: 0.4–90.1 kB](https://img.shields.io/badge/gzip_per_import-0.4%E2%80%9390.1_kB-0e7490?labelColor=0d0f12)](https://signoff-ui.vercel.app/docs/limits#bundle-size)
+[![gzip per import: 0.4–90.2 kB](https://img.shields.io/badge/gzip_per_import-0.4%E2%80%9390.2_kB-0e7490?labelColor=0d0f12)](https://signoff-ui.vercel.app/docs/limits#bundle-size)
 [![Types: included](https://img.shields.io/badge/types-included-0e7490?labelColor=0d0f12&logo=typescript&logoColor=white)](https://signoff-ui.vercel.app/docs/getting-started#requirements)
 [![License: MIT](https://img.shields.io/badge/license-MIT-0e7490?labelColor=0d0f12)](./LICENSE)
 
@@ -260,7 +260,7 @@ signoff-ui does one part of an agent product in depth: the review and approval s
 
 - **assistant-ui** has a chat runtime and thread, adapters for the AI SDK, LangGraph, AG-UI and more, and an Elements collection far wider than this kit.
 - **AI Elements** covers the most of the message surface in shadcn style (conversation, prompt input, artifacts, a `Context` usage indicator and more), maintained by Vercel. Its components are written against AI SDK 6.
-- **@pierre/diffs** renders diffs with Shiki's highlighting, comment annotations, virtualization and a helper to accept or reject a hunk, and leaves the review to you. Its `MultiFileDiff` (1.5.2) is 139 kB gzipped before it loads a Shiki theme or grammar; `DiffReview` is 43.5 kB up front, plus a 6.7 kB worker it starts for large files.
+- **@pierre/diffs** renders diffs with Shiki's highlighting, comment annotations, virtualization and a helper to accept or reject a hunk, and leaves the review to you. Its `MultiFileDiff` (1.5.2) is 139 kB gzipped before it loads a Shiki theme or grammar; `DiffReview` is 43.6 kB up front, plus a 6.7 kB worker it starts for large files.
 
 Where signoff-ui goes further: review from file contents across several files, with the patched files, the rejected hunks and line comments as the result; approvals once, for the session or always, by tool and argument pattern, with the arguments editable first and the same rules for AI SDK 7's `toolApproval`; approvals that tell a person's decision from a policy's; tool durations that leave out time spent waiting for a person; and a stylesheet for Tailwind v3 or no Tailwind. Use either chat kit for the chat, and these components for the sign-off. [The full comparison](https://signoff-ui.vercel.app/docs/comparison).
 

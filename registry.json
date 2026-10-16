@@ -78,6 +78,11 @@
           "target": "components/signoff-ui/lib/primitives.tsx"
         },
         {
+          "path": "packages/signoff-ui/src/lib/revealed.tsx",
+          "type": "registry:lib",
+          "target": "components/signoff-ui/lib/revealed.tsx"
+        },
+        {
           "path": "packages/signoff-ui/src/lib/review.ts",
           "type": "registry:lib",
           "target": "components/signoff-ui/lib/review.ts"
@@ -586,6 +591,11 @@
           "target": "components/signoff-ui/lib/primitives.tsx"
         },
         {
+          "path": "packages/signoff-ui/src/lib/revealed.tsx",
+          "type": "registry:lib",
+          "target": "components/signoff-ui/lib/revealed.tsx"
+        },
+        {
           "path": "packages/signoff-ui/src/lib/scroll-region.ts",
           "type": "registry:lib",
           "target": "components/signoff-ui/lib/scroll-region.ts"
@@ -1075,6 +1085,11 @@
           "path": "packages/signoff-ui/src/lib/primitives.tsx",
           "type": "registry:lib",
           "target": "components/signoff-ui/lib/primitives.tsx"
+        },
+        {
+          "path": "packages/signoff-ui/src/lib/revealed.tsx",
+          "type": "registry:lib",
+          "target": "components/signoff-ui/lib/revealed.tsx"
         },
         {
           "path": "packages/signoff-ui/src/lib/scroll-region.ts",
@@ -3053,6 +3068,11 @@
           "path": "packages/signoff-ui/src/lib/primitives.tsx",
           "type": "registry:lib",
           "target": "components/signoff-ui/lib/primitives.tsx"
+        },
+        {
+          "path": "packages/signoff-ui/src/lib/revealed.tsx",
+          "type": "registry:lib",
+          "target": "components/signoff-ui/lib/revealed.tsx"
         },
         {
           "path": "packages/signoff-ui/src/lib/review.ts",

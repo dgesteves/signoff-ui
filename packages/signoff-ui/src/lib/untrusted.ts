@@ -1,9 +1,8 @@
 /**
  * Text and URLs from the agent, shown to the person who decides on them. A prompt injection can
  * write them too, so the components show what would make them read as something other than what
- * runs or opens: characters that do not show, a run of spaces long enough to push the rest of a
- * command out of view, and a link whose text names another host. No React here, so servers can
- * call these too.
+ * runs or opens: characters that do not show, a long run of spaces, and a link whose text names
+ * another host. No React here, so servers can call these too.
  */
 
 /**
@@ -160,6 +159,8 @@ const DOMAIN_TEXT = /^((?:[\p{L}\p{N}-]+\.)+\p{L}[\p{L}\p{N}-]+)\.?(?:[/?#:]\S*)
 /** A file's or a product's name, which reads like a domain and is not one: `README.md`, `Next.js`. */
 const FILE_NAME =
   /\.(?:[cm]?[jt]sx?|json|mdx?|s?css|html?|py|rb|go|rs|sh|txt|ya?ml|toml|lock|vue|svelte|php|java|kt|swift|cpp|cs|sql|xml|csv|log|zip|pdf|png|jpe?g|gif|svg|webp)$/i;
+/** Of those, the extensions that are top-level domains too: `docs.rs`, `bun.sh`, `get.zip`. */
+const TLD_EXTENSION = /\.(?:md|py|rs|sh|zip)$/i;
 
 /** A host as the browser resolves it (lowercase, look-alike letters in punycode), without `www.`. */
 function normalHost(host: string): string | undefined {
@@ -170,17 +171,29 @@ function normalHost(host: string): string | undefined {
   }
 }
 
+/** The last segment of a URL's path, decoded and in lowercase: `readme.md` for `/a/b/README.md`. */
+function lastSegment(url: URL): string {
+  const segment = url.pathname.split('/').pop() ?? '';
+  try {
+    return decodeURIComponent(segment).toLowerCase();
+  } catch {
+    return segment.toLowerCase();
+  }
+}
+
 /**
  * The host a link goes to, when its text could make a person think it goes elsewhere: the text
  * names another host, or names one in look-alike letters (the host is in punycode, `xn--`), or has
- * characters that do not show. Otherwise `undefined`, and the link needs nothing beside it.
+ * characters that do not show, or the URL puts a name before the host (`https://github.com@evil.example`).
+ * Otherwise `undefined`, and the link needs nothing beside it.
  */
 export function linkHostMismatch(text: string, href: string): string | undefined {
+  let url: URL;
   let target: string | undefined;
   try {
     // Against a base of its own, so that a relative URL, which stays on the page's site, has no host
     // to show, and `//evil.example/x` has evil.example.
-    const url = new URL(href, 'https://self.invalid');
+    url = new URL(href, 'https://self.invalid');
     if (url.host === 'self.invalid') return undefined;
     if (url.protocol === 'http:' || url.protocol === 'https:') target = normalHost(url.hostname);
     else if (url.protocol === 'mailto:') target = normalHost(url.pathname.split('@').pop() ?? '');
@@ -188,10 +201,18 @@ export function linkHostMismatch(text: string, href: string): string | undefined
     return undefined;
   }
   if (!target) return undefined;
+  // What comes before an @ reads as the host, and is only a user name: whatever the text says.
+  if (url.username || url.password) return target;
   const trimmed = text.trim();
   if (hasHidden(trimmed)) return target;
   const domain = DOMAIN_TEXT.exec(trimmed)?.[1];
-  const named = NAMED_HOST.exec(trimmed)?.[1] ?? (domain && !FILE_NAME.test(domain) ? domain : undefined);
+  // A name such as `README.md` is a file's, unless its extension is a top-level domain too, as in
+  // `docs.rs`: then only when the link goes to that file.
+  const fileName =
+    !!domain &&
+    FILE_NAME.test(domain) &&
+    (!TLD_EXTENSION.test(domain) || (trimmed === domain && lastSegment(url) === domain.toLowerCase()));
+  const named = NAMED_HOST.exec(trimmed)?.[1] ?? (domain && !fileName ? domain : undefined);
   if (named === undefined) return undefined;
   return normalHost(named) !== target || target.split('.').some((label) => label.startsWith('xn--'))
     ? target

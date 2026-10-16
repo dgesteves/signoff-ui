@@ -22,16 +22,10 @@ import {
   type ToolPart,
 } from './lib/ai';
 import { humanizeToolName, safeStringify } from './lib/format';
-import {
-  approvalCardLabels,
-  commonLabels,
-  untrustedLabels,
-  type SignoffLabels,
-  type SignoffLabelsInput,
-} from './lib/labels';
+import { approvalCardLabels, commonLabels, type SignoffLabels, type SignoffLabelsInput } from './lib/labels';
 import { evaluateRules, suggestArgs, type ApprovalDecision, type ApprovalRequest } from './lib/policy';
 import { useScrollRegion } from './lib/scroll-region';
-import { MARK_CLASS, revealText } from './lib/untrusted';
+import { Revealed } from './lib/revealed';
 import { BanIcon, CheckIcon, ShieldIcon, TerminalIcon } from './lib/icons';
 import { JsonView, Kbd, LiveRegion } from './lib/primitives';
 import { useIsMac } from './lib/hooks';
@@ -41,7 +35,7 @@ import type { ApprovalOutcome, ApprovalPolicy } from './use-approval-policy';
 import { useLabels, WithLabels } from './labels';
 
 /** The labels' sections this module reads. */
-const LABELS = { approvalCard: approvalCardLabels, common: commonLabels, untrusted: untrustedLabels };
+const LABELS = { approvalCard: approvalCardLabels, common: commonLabels };
 
 export type { ApprovalStatus, RiskLevel };
 export type { ApprovalDecision } from './lib/policy';
@@ -231,28 +225,11 @@ const SLOT: Record<ApprovalDecision, string> = {
 };
 
 /**
- * Text from the agent, with marks in place of what does not show and of long runs of spaces, so a
- * command reads as what runs: see `revealText`.
+ * A command wraps, so no part of it sits out of view to the side, whatever comes before it; a long
+ * run of spaces shows as its count, and what does not show as a mark (`Revealed`). Should something
+ * still be wider than the box, such as a mark in a very narrow one, it scrolls sideways, and while
+ * it does, the keyboard can reach it.
  */
-function Revealed({ text }: { text: string }) {
-  const L = useLabels(LABELS).untrusted;
-  return (
-    <>
-      {revealText(text, { blanks: true }).map((part, i) => {
-        if (typeof part === 'string') return part;
-        const name = part.kind === 'blank' ? L.blank(part.count) : L.invisible(part.count, part.codes);
-        return (
-          <span key={i} data-slot="signoff-untrusted" data-kind={part.kind} title={name} className={MARK_CLASS}>
-            <span aria-hidden="true">{part.shown}</span>
-            <span className="sr-only">{name}</span>
-          </span>
-        );
-      })}
-    </>
-  );
-}
-
-/** A long command scrolls sideways; while it does, the keyboard can reach it. */
 function CommandPreview({ command, cwd, label }: { command: string; cwd: string | undefined; label: string }) {
   const scrollRef = useScrollRegion<HTMLDivElement>(label);
   return (
@@ -261,15 +238,15 @@ function CommandPreview({ command, cwd, label }: { command: string; cwd: string 
       className="border-signoff-border bg-signoff-bg/70 font-signoff-mono focus-visible:outline-signoff-ring overflow-x-auto rounded-lg border px-3 py-2.5 text-[13px] leading-5 focus-visible:outline-2 focus-visible:outline-offset-1"
     >
       {cwd && (
-        <div className="text-signoff-fg-subtle mb-0.5 text-[11px]">
-          <Revealed text={cwd} />
+        <div className="text-signoff-fg-subtle mb-0.5 text-[11px] [overflow-wrap:anywhere] whitespace-pre-wrap">
+          <Revealed text={cwd} blanks />
         </div>
       )}
-      <div className="text-signoff-fg whitespace-pre">
+      <div className="text-signoff-fg [overflow-wrap:anywhere] whitespace-pre-wrap">
         <span aria-hidden="true" className="text-signoff-accent-fg mr-2 select-none">
           $
         </span>
-        <Revealed text={command} />
+        <Revealed text={command} blanks />
       </div>
     </div>
   );

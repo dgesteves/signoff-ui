@@ -25,19 +25,19 @@ const customMarkdown = JSON.stringify(join(dist, 'custom-markdown.js'));
 const rows = [
   ['`addUsage`, `estimateCost` (`/core`, for a route)', `export { addUsage, estimateCost } from ${core};`, 0.5],
   ['`applyHunks`, `parseFileChange` (`/core`, with jsdiff)', `export { applyHunks, parseFileChange } from ${core};`, 7],
-  ['`Sources`', `export { Sources } from ${index};`, 10.5],
+  ['`Sources`', `export { Sources } from ${index};`, 10.9],
   ['`AgentStatus`', `export { AgentStatus, deriveAgentState } from ${index};`, 11.8],
   ['`RunMeter`', `export { RunMeter, useRunTiming } from ${index};`, 13],
   ['`ApprovalCard`', `export { ApprovalCard, ToolApprovalCard } from ${index};`, 22.7],
   ['`useApprovalPolicy` (no markup)', `export { useApprovalPolicy } from ${index};`, 4.2],
   ['`toToolApproval` (`/core`, for a route)', `export { toToolApproval } from ${core};`, 2.7],
   ['`ToolCallTimeline`', `export { ToolCallTimeline } from ${index};`, 24],
-  ['`DiffReview`', `export { DiffReview } from ${index};`, 44.5],
+  ['`DiffReview`', `export { DiffReview } from ${index};`, 45.8],
   ['`useDiffReview` (no markup)', `export { useDiffReview } from ${index};`, 17],
   [
     '`AgentMessage` (with markdown, reasoning, timeline, approvals, sources)',
     `export { AgentMessage } from ${index};`,
-    90.5,
+    94.7,
   ],
   [
     '`AgentMessage` (`/custom-markdown`, for your own renderer: no react-markdown)',
@@ -50,7 +50,7 @@ const rows = [
   [
     '`signoffTools` (`/assistant-ui`, with DiffReview and the approval card)',
     `export * from ${JSON.stringify(join(dist, 'assistant-ui.js'))};`,
-    55,
+    57.2,
   ],
   ['Everything in the main entry', `export * from ${index};`, 133],
 ];
