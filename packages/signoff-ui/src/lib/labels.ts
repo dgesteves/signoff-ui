@@ -294,6 +294,15 @@ export interface SignoffLabels {
   };
   sources: { label: string; document: string };
   agentMessage: { attachedImage: string };
+  /** The marks on text from the agent, where it could read as something it is not. */
+  untrusted: {
+    /** A mark in place of characters that do not show, such as a bidi control or a zero-width space; `codes` lists each once. */
+    invisible: (count: number, codes: readonly string[]) => string;
+    /** A mark in place of a long run of spaces and tabs in a command or a path. */
+    blank: (count: number) => string;
+    /** Beside a link whose text names another host than the one it goes to. */
+    linksTo: (host: string) => string;
+  };
 }
 
 const plural = (n: number, one: string, many = `${one}s`) => (n === 1 ? one : many);
@@ -596,6 +605,13 @@ export const sourcesLabels: SignoffLabels['sources'] = { label: 'Sources', docum
 
 export const agentMessageLabels: SignoffLabels['agentMessage'] = { attachedImage: 'Attached image' };
 
+export const untrustedLabels: SignoffLabels['untrusted'] = {
+  invisible: (count, codes) =>
+    count === 1 ? `Invisible character ${codes[0]}` : `${count} invisible characters: ${codes.join(', ')}`,
+  blank: (count) => `${count} blank characters`,
+  linksTo: (host) => `Links to ${host}`,
+};
+
 /** The English labels, as the components read without any. */
 export const defaultLabels: SignoffLabels = {
   format: formatLabels,
@@ -610,6 +626,7 @@ export const defaultLabels: SignoffLabels = {
   approvalPolicy: approvalPolicyLabels,
   sources: sourcesLabels,
   agentMessage: agentMessageLabels,
+  untrusted: untrustedLabels,
 };
 
 /** A part of the labels: any section, any key, at any depth. */

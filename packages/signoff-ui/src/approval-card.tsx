@@ -25,6 +25,7 @@ import { humanizeToolName, safeStringify } from './lib/format';
 import { approvalCardLabels, commonLabels, type SignoffLabels, type SignoffLabelsInput } from './lib/labels';
 import { evaluateRules, suggestArgs, type ApprovalDecision, type ApprovalRequest } from './lib/policy';
 import { useScrollRegion } from './lib/scroll-region';
+import { Revealed } from './lib/revealed';
 import { BanIcon, CheckIcon, ShieldIcon, TerminalIcon } from './lib/icons';
 import { JsonView, Kbd, LiveRegion } from './lib/primitives';
 import { useIsMac } from './lib/hooks';
@@ -223,7 +224,12 @@ const SLOT: Record<ApprovalDecision, string> = {
   'deny-always': 'signoff-approval-deny-always',
 };
 
-/** A long command scrolls sideways; while it does, the keyboard can reach it. */
+/**
+ * A command wraps, so no part of it sits out of view to the side, whatever comes before it; a long
+ * run of spaces shows as its count, and what does not show as a mark (`Revealed`). Should something
+ * still be wider than the box, such as a mark in a very narrow one, it scrolls sideways, and while
+ * it does, the keyboard can reach it.
+ */
 function CommandPreview({ command, cwd, label }: { command: string; cwd: string | undefined; label: string }) {
   const scrollRef = useScrollRegion<HTMLDivElement>(label);
   return (
@@ -231,12 +237,16 @@ function CommandPreview({ command, cwd, label }: { command: string; cwd: string 
       ref={scrollRef}
       className="border-signoff-border bg-signoff-bg/70 font-signoff-mono focus-visible:outline-signoff-ring overflow-x-auto rounded-lg border px-3 py-2.5 text-[13px] leading-5 focus-visible:outline-2 focus-visible:outline-offset-1"
     >
-      {cwd && <div className="text-signoff-fg-subtle mb-0.5 text-[11px]">{cwd}</div>}
-      <div className="text-signoff-fg whitespace-pre">
+      {cwd && (
+        <div className="text-signoff-fg-subtle mb-0.5 text-[11px] [overflow-wrap:anywhere] whitespace-pre-wrap">
+          <Revealed text={cwd} blanks />
+        </div>
+      )}
+      <div className="text-signoff-fg [overflow-wrap:anywhere] whitespace-pre-wrap">
         <span aria-hidden="true" className="text-signoff-accent-fg mr-2 select-none">
           $
         </span>
-        {command}
+        <Revealed text={command} blanks />
       </div>
     </div>
   );

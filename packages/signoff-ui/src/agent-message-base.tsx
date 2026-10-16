@@ -21,6 +21,7 @@ import { useToolTimings, type ToolTimings } from './lib/hooks';
 import { FileIcon, ImageIcon } from './lib/icons';
 import { getImagePolicy, isAllowedImage, type ImagePolicy } from './lib/images';
 import { Img } from './lib/primitives';
+import { safeUrl } from './lib/untrusted';
 import { cn } from './lib/utils';
 import { CustomMarkdown, useMarkdownRenderer, type BuiltInMarkdown, type MarkdownRenderer } from './markdown-renderer';
 import type { ApprovalPolicy } from './use-approval-policy';
@@ -291,16 +292,18 @@ function FileAttachment({ part, imagePolicy }: { part: FilePart; imagePolicy: Im
   const L = useLabels(LABELS);
   const name = part.filename ?? part.mediaType;
   const image = part.mediaType.startsWith('image');
-  if (image && canPreview(part.url, imagePolicy)) {
+  // A URL a link may not use (`javascript:`) is neither linked nor loaded: the file shows as its name.
+  const url = safeUrl(part.url, { files: true });
+  if (image && url && canPreview(url, imagePolicy)) {
     return (
       <a
-        href={part.url}
+        href={url}
         target="_blank"
         rel="noopener noreferrer"
         className="focus-visible:outline-signoff-ring block w-fit rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2"
       >
         <Img
-          src={part.url}
+          src={url}
           alt={part.filename ?? L.agentMessage.attachedImage}
           className="border-signoff-border max-h-64 rounded-lg border"
         />
@@ -308,9 +311,17 @@ function FileAttachment({ part, imagePolicy }: { part: FilePart; imagePolicy: Im
     );
   }
   const Icon = image ? ImageIcon : FileIcon;
+  if (!url) {
+    return (
+      <span className="border-signoff-border bg-signoff-surface text-signoff-fg inline-flex w-fit items-center gap-2 rounded-lg border px-3 py-2 text-[13px]">
+        <Icon size={14} className="text-signoff-fg-subtle" />
+        {name}
+      </span>
+    );
+  }
   return (
     <a
-      href={part.url}
+      href={url}
       target="_blank"
       rel="noopener noreferrer"
       className="border-signoff-border bg-signoff-surface text-signoff-fg hover:bg-signoff-surface-2 focus-visible:outline-signoff-ring inline-flex w-fit items-center gap-2 rounded-lg border px-3 py-2 text-[13px] focus-visible:outline-2 focus-visible:outline-offset-2"

@@ -21,6 +21,8 @@ import type { DiffHunk, DiffLine, HunkDecision, ParsedFileDiff } from './lib/dif
 import { gapLines, type ContextGap, type DiffReviewComment } from './lib/review';
 import { mergeTokensWithSegments, TOKEN_CLASS, tokenizeLine } from './lib/highlight';
 import { useScrollRegion } from './lib/scroll-region';
+import { Revealed } from './lib/revealed';
+import { hasHidden } from './lib/untrusted';
 import { ArrowDownIcon, ArrowUpIcon, CheckIcon, ChevronIcon, CommentIcon, UndoIcon, XIcon } from './lib/icons';
 import { Kbd, LiveRegion } from './lib/primitives';
 import { cn, type HeadingLevel } from './lib/utils';
@@ -623,15 +625,23 @@ function PathLabel({ path, oldPath }: { path: string; oldPath?: string | undefin
     <span className="min-w-0 truncate">
       {oldPath && oldPath !== path && (
         <>
-          <span className="text-signoff-fg-subtle">{oldPath}</span>
+          <span className="text-signoff-fg-subtle">
+            <Revealed text={oldPath} blanks />
+          </span>
           <span className="text-signoff-fg-subtle" aria-hidden="true">
             {' → '}
           </span>
           <span className="sr-only">{` ${T.renamedTo} `}</span>
         </>
       )}
-      {slash > 0 && <span className="text-signoff-fg-subtle">{path.slice(0, slash + 1)}</span>}
-      <span className="text-signoff-fg font-medium">{path.slice(slash + 1)}</span>
+      {slash > 0 && (
+        <span className="text-signoff-fg-subtle">
+          <Revealed text={path.slice(0, slash + 1)} blanks />
+        </span>
+      )}
+      <span className="text-signoff-fg font-medium">
+        <Revealed text={path.slice(slash + 1)} blanks />
+      </span>
     </span>
   );
 }
@@ -932,7 +942,8 @@ const WholeFile = memo(function WholeFile({
   const T = useLabels(LABELS).diffReview;
   const parsed = file.parsed!;
   const id = `${file.id}:file`;
-  const note = T.wholeFile(parsed.status, !!parsed.binary, parsed.oldPath ?? file.path);
+  const notePath = parsed.oldPath ?? file.path;
+  const note = T.wholeFile(parsed.status, !!parsed.binary, notePath);
   return (
     // A roving-tabindex item: focus tracking only, all actions are buttons.
     <div
@@ -946,7 +957,10 @@ const WholeFile = memo(function WholeFile({
       className={itemClass(decision)}
     >
       <div className="bg-signoff-bg/35 flex min-h-9 items-center gap-2 py-1 pr-2 pl-4">
-        <span className="text-signoff-fg-muted min-w-0 truncate text-xs">{note}</span>
+        <span className="text-signoff-fg-muted min-w-0 truncate text-xs">
+          {/* The path in it is the agent's: it shows marks as the header does, when it has any. */}
+          {hasHidden(notePath) ? <Revealed text={note} /> : note}
+        </span>
         <DecisionBadge decision={decision} />
         {!readOnly && (
           <DecisionButtons
@@ -1378,6 +1392,8 @@ function LineContent({
       ),
     [line, language],
   );
+  // A bidi control can make code read as other code (Trojan Source): such characters show as marks.
+  const reveal = useMemo(() => hasHidden(line.content), [line]);
   return (
     <span
       className={cn(
@@ -1404,7 +1420,7 @@ function LineContent({
                 )
           }
         >
-          {p.text}
+          {reveal ? <Revealed text={p.text} /> : p.text}
         </span>
       ))}
       {line.content === '' && ' '}

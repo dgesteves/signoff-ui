@@ -10,7 +10,7 @@ Deciding on an approval card moves focus to the card instead of dropping it on `
 
 ## Scrolling content is reachable
 
-Code blocks, tables, command previews, diff hunks and the compact run meter scroll sideways when they don't fit. While they do, they join the tab order as named groups ("Hunk 2 code, app/api/chat/route.ts"), so the arrow keys scroll them; once everything fits, they add no tab stop.
+Code blocks, tables, diff hunks and the compact run meter scroll sideways when they don't fit (a command preview wraps instead). While they do, they join the tab order as named groups ("Hunk 2 code, app/api/chat/route.ts"), so the arrow keys scroll them; once everything fits, they add no tab stop.
 
 ## Announcements
 

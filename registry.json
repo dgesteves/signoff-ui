@@ -78,6 +78,11 @@
           "target": "components/signoff-ui/lib/primitives.tsx"
         },
         {
+          "path": "packages/signoff-ui/src/lib/revealed.tsx",
+          "type": "registry:lib",
+          "target": "components/signoff-ui/lib/revealed.tsx"
+        },
+        {
           "path": "packages/signoff-ui/src/lib/review.ts",
           "type": "registry:lib",
           "target": "components/signoff-ui/lib/review.ts"
@@ -86,6 +91,11 @@
           "path": "packages/signoff-ui/src/lib/scroll-region.ts",
           "type": "registry:lib",
           "target": "components/signoff-ui/lib/scroll-region.ts"
+        },
+        {
+          "path": "packages/signoff-ui/src/lib/untrusted.ts",
+          "type": "registry:lib",
+          "target": "components/signoff-ui/lib/untrusted.ts"
         },
         {
           "path": "packages/signoff-ui/src/lib/utils.ts",
@@ -581,9 +591,19 @@
           "target": "components/signoff-ui/lib/primitives.tsx"
         },
         {
+          "path": "packages/signoff-ui/src/lib/revealed.tsx",
+          "type": "registry:lib",
+          "target": "components/signoff-ui/lib/revealed.tsx"
+        },
+        {
           "path": "packages/signoff-ui/src/lib/scroll-region.ts",
           "type": "registry:lib",
           "target": "components/signoff-ui/lib/scroll-region.ts"
+        },
+        {
+          "path": "packages/signoff-ui/src/lib/untrusted.ts",
+          "type": "registry:lib",
+          "target": "components/signoff-ui/lib/untrusted.ts"
         },
         {
           "path": "packages/signoff-ui/src/lib/utils.ts",
@@ -1067,9 +1087,19 @@
           "target": "components/signoff-ui/lib/primitives.tsx"
         },
         {
+          "path": "packages/signoff-ui/src/lib/revealed.tsx",
+          "type": "registry:lib",
+          "target": "components/signoff-ui/lib/revealed.tsx"
+        },
+        {
           "path": "packages/signoff-ui/src/lib/scroll-region.ts",
           "type": "registry:lib",
           "target": "components/signoff-ui/lib/scroll-region.ts"
+        },
+        {
+          "path": "packages/signoff-ui/src/lib/untrusted.ts",
+          "type": "registry:lib",
+          "target": "components/signoff-ui/lib/untrusted.ts"
         },
         {
           "path": "packages/signoff-ui/src/lib/utils.ts",
@@ -2040,6 +2070,11 @@
           "target": "components/signoff-ui/lib/labels.ts"
         },
         {
+          "path": "packages/signoff-ui/src/lib/untrusted.ts",
+          "type": "registry:lib",
+          "target": "components/signoff-ui/lib/untrusted.ts"
+        },
+        {
           "path": "packages/signoff-ui/src/lib/utils.ts",
           "type": "registry:lib",
           "target": "components/signoff-ui/lib/utils.ts"
@@ -2278,6 +2313,11 @@
           "path": "packages/signoff-ui/src/lib/scroll-region.ts",
           "type": "registry:lib",
           "target": "components/signoff-ui/lib/scroll-region.ts"
+        },
+        {
+          "path": "packages/signoff-ui/src/lib/untrusted.ts",
+          "type": "registry:lib",
+          "target": "components/signoff-ui/lib/untrusted.ts"
         },
         {
           "path": "packages/signoff-ui/src/lib/utils.ts",
@@ -2530,6 +2570,11 @@
           "path": "packages/signoff-ui/src/lib/scroll-region.ts",
           "type": "registry:lib",
           "target": "components/signoff-ui/lib/scroll-region.ts"
+        },
+        {
+          "path": "packages/signoff-ui/src/lib/untrusted.ts",
+          "type": "registry:lib",
+          "target": "components/signoff-ui/lib/untrusted.ts"
         },
         {
           "path": "packages/signoff-ui/src/lib/utils.ts",
@@ -3025,6 +3070,11 @@
           "target": "components/signoff-ui/lib/primitives.tsx"
         },
         {
+          "path": "packages/signoff-ui/src/lib/revealed.tsx",
+          "type": "registry:lib",
+          "target": "components/signoff-ui/lib/revealed.tsx"
+        },
+        {
           "path": "packages/signoff-ui/src/lib/review.ts",
           "type": "registry:lib",
           "target": "components/signoff-ui/lib/review.ts"
@@ -3033,6 +3083,11 @@
           "path": "packages/signoff-ui/src/lib/scroll-region.ts",
           "type": "registry:lib",
           "target": "components/signoff-ui/lib/scroll-region.ts"
+        },
+        {
+          "path": "packages/signoff-ui/src/lib/untrusted.ts",
+          "type": "registry:lib",
+          "target": "components/signoff-ui/lib/untrusted.ts"
         },
         {
           "path": "packages/signoff-ui/src/lib/utils.ts",

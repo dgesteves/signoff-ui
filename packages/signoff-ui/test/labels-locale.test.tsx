@@ -196,7 +196,12 @@ describe('labels: every word comes from them', () => {
         {(['low', 'medium', 'high'] as const).map((risk) => (
           <ApprovalCard key={risk} toolName={TOOL} input={{ путь: 'файл' }} risk={risk} decisions={all} editable />
         ))}
-        <ApprovalCard toolName={TOOL} input={{ command: 'сборка --всё', cwd: '~/проект' }} risk="critical" />
+        {/* A zero-width space and a long run of spaces, which show as marks. */}
+        <ApprovalCard
+          toolName={TOOL}
+          input={{ command: `сборка\u200B --всё${' '.repeat(20)}ещё`, cwd: '~/проект' }}
+          risk="critical"
+        />
         <ApprovalCard toolName={TOOL} input={{ список: [1, 2] }} editable />
       </>,
     );
@@ -385,7 +390,7 @@ describe('labels: every word comes from them', () => {
       parts: [
         {
           type: 'text',
-          text: 'Ответ [1].\n\n| а | б |\n|---|---|\n| в | г |\n\n```\nкод\n```\n\n![картинка](https://127.0.0.1/a.png) ![](https://127.0.0.1/b.png)',
+          text: 'Ответ [1], [пример.рф](https://127.0.0.2/б).\n\n| а | б |\n|---|---|\n| в | г |\n\n```\nкод\n```\n\n![картинка](https://127.0.0.1/a.png) ![](https://127.0.0.1/b.png)',
         },
         { type: 'file', mediaType: 'image/png', url: 'data:image/png;base64,iVBORw0KGgo=' },
         { type: 'file', mediaType: 'image/png', url: 'https://127.0.0.1/c.png', filename: 'снимок' },
