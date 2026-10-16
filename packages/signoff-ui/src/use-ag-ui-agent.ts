@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useSyncExternalStore } from 'react';
 import type { ChatStatus, UIMessage } from 'ai';
 import type { RunUsage } from './lib/ai';
 import {
@@ -33,6 +33,18 @@ export interface AgUiSubscriber {
   onMessagesChanged?(params: { messages: readonly AgUiMessage[] }): void;
   onRunFailed?(params: { error: Error }): void;
   onRunFinalized?(params: { messages: readonly AgUiMessage[] }): void;
+}
+
+export interface UseAgUiAgentOptions {
+  /**
+   * Starts the run that resumes the agent once every open interrupt has an answer. By default the
+   * hook calls `agent.runAgent({ resume })`, which sends no tools, context or forwarded props, so a
+   * run you started with them resumes without them. Pass the ones your runs send:
+   * `(parameters) => agent.runAgent({ ...parameters, tools, context })`. In CopilotKit, resume
+   * through it, so the run gets the frontend tools you registered:
+   * `(parameters) => copilotkit.runAgent({ agent, ...parameters })`.
+   */
+  runAgent?: ((parameters: { resume: AgUiResumeEntry[] }) => Promise<unknown>) | undefined;
 }
 
 export interface UseAgUiAgentResult {
@@ -68,6 +80,8 @@ export interface UseAgUiAgentResult {
 }
 
 const CANCELLED = { type: 'RUN_FINISHED', outcome: { type: 'cancelled' } };
+
+const useIsoLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect;
 
 interface Snapshot {
   messages: readonly AgUiMessage[];
@@ -156,15 +170,24 @@ function createStore(agent: AgUiAgentLike) {
  * const agent = useMemo(() => new HttpAgent({ url: '/api/agent' }), []);
  * const { messages, status, respond } = useAgUiAgent(agent);
  * ```
+ *
+ * When your runs send tools or context, pass `runAgent` so the run that resumes an interrupt sends
+ * them too.
  */
-export function useAgUiAgent(agent: AgUiAgentLike): UseAgUiAgentResult {
+export function useAgUiAgent(agent: AgUiAgentLike, options: UseAgUiAgentOptions = {}): UseAgUiAgentResult {
   const store = useMemo(() => createStore(agent), [agent]);
   const { messages, run } = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
 
+  // The latest render's runAgent, so an inline function doesn't make respond a new one each render.
+  const runAgent = useRef(options.runAgent);
+  useIsoLayoutEffect(() => {
+    runAgent.current = options.runAgent;
+  });
   const answer = useCallback(
     async (response: AgUiApprovalResponse | AgUiResumeEntry) => {
       const resume = store.answer(response);
-      if (resume) await agent.runAgent({ resume });
+      if (!resume) return;
+      await (runAgent.current ? runAgent.current({ resume }) : agent.runAgent({ resume }));
     },
     [agent, store],
   );

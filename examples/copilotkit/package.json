@@ -1,0 +1,29 @@
+{
+  "name": "copilotkit-example",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev --port 3500",
+    "build": "next build",
+    "start": "next start --port 3500",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ag-ui/client": "1.0.2",
+    "@copilotkit/react-core": "1.79.0",
+    "@copilotkit/runtime": "1.79.0",
+    "ai": "^7.0.137",
+    "next": "^16.4.1",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "rxjs": "7.8.1",
+    "signoff-ui": "^0.9.0",
+    "zod": "^4.6.6"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "typescript": "~6.0.3"
+  }
+}

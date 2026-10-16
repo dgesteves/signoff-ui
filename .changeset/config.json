@@ -7,5 +7,5 @@
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
-  "ignore": ["playground", "nextjs-minimal", "assistant-ui-example", "coding-agent"]
+  "ignore": ["playground", "nextjs-minimal", "assistant-ui-example", "coding-agent", "copilotkit-example"]
 }

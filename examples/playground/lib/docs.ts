@@ -57,6 +57,13 @@ export const GUIDES: DocPage[] = [
       'Render LangGraph, CrewAI, Mastra and other AG-UI agents with the same components, interrupts included, through useAgUiAgent.',
   },
   {
+    slug: 'copilotkit',
+    href: '/docs/copilotkit',
+    title: 'CopilotKit',
+    description:
+      'The approval card, approval rules and DiffReview inside CopilotKit: its human-in-the-loop and interrupt hooks render them, with a runnable example.',
+  },
+  {
     slug: 'acp',
     href: '/docs/acp',
     title: 'Agent Client Protocol',
@@ -114,7 +121,7 @@ const guides = (...slugs: string[]) =>
 /** The sidebar, in reading order: what to read first, the guides, each component, and the rest. */
 export const NAV: NavGroup[] = [
   { title: 'Get started', items: guides('introduction', 'getting-started') },
-  { title: 'Guides', items: guides('chat-ui', 'ag-ui', 'acp', 'labels', 'accessibility') },
+  { title: 'Guides', items: guides('chat-ui', 'ag-ui', 'copilotkit', 'acp', 'labels', 'accessibility') },
   {
     title: 'Components',
     items: [

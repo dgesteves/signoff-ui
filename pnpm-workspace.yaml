@@ -7,6 +7,7 @@ overrides:
   'signoff-ui': 'workspace:*'
 allowBuilds:
   '@parcel/watcher': false
+  '@scarf/scarf': false
   unrs-resolver: false
 minimumReleaseAgeExclude:
   - '@ai-sdk/gateway@4.0.104'

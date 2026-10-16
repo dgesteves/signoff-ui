@@ -186,6 +186,35 @@ jobs:
       - name: Review and approve in the example from the packed package, in Chrome
         run: pnpm smoke:assistant-ui
 
+  copilotkit:
+    name: CopilotKit example
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build library
+        run: pnpm build:lib
+
+      # cacheComponents is on, as in new Next.js apps: the build fails if CopilotKitProvider is not
+      # inside a Suspense boundary (app/providers.tsx).
+      - name: Build examples/copilotkit
+        run: pnpm --filter copilotkit-example build
+
+      # CopilotKit's hooks render the approval card, approval rules and DiffReview; an interrupt
+      # through useInterrupt; and useAgUiAgent resuming through copilotkit.runAgent.
+      - name: Approvals, a rule, a review and an interrupt in CopilotKit, in Chrome
+        run: pnpm smoke:copilotkit
+
   coding-agent:
     name: Coding agent reference app
     if: github.event_name != 'schedule'

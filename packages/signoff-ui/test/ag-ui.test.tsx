@@ -799,6 +799,103 @@ describe('useAgUiAgent', () => {
     ]);
   });
 
+  describe('the resumed run, with runAgent', () => {
+    // Frontend tools and context, as a CopilotKit app or any app that passes them to runAgent sends.
+    const tools = [{ name: 'notify', description: 'Post in a channel', parameters: { type: 'object' } }];
+    const context = [{ description: 'Branch', value: 'main' }];
+    const resumed = [{ interruptId: 'int1', status: 'resolved', payload: { approved: true } }];
+
+    it('resumes through runAgent, so the resumed run keeps the tools and context the run had', async () => {
+      const agent = interruptingAgent();
+      agent.addMessage({ id: 'u1', role: 'user', content: 'Add zod' });
+      const { result } = renderHook(() =>
+        useAgUiAgent(agent, { runAgent: (parameters) => agent.runAgent({ ...parameters, tools, context }) }),
+      );
+      await act(() => agent.runAgent({ tools, context }));
+      await act(() => result.current.respond({ id: 'int1', approved: true }));
+      expect(agent.inputs.map((input) => input.tools.map((tool) => tool.name))).toEqual([['notify'], ['notify']]);
+      expect(agent.inputs[1]).toMatchObject({ context, resume: resumed });
+      expect(result.current.messages[1]!.parts).toMatchObject([
+        { type: 'text', text: 'Adding zod.' },
+        { state: 'output-available', output: { exitCode: 0 } },
+        { type: 'text', text: 'Installed.' },
+      ]);
+    });
+
+    it('resolves an interrupt that is not a tool approval through runAgent too', async () => {
+      const agent = new ScriptedAgent([
+        ({ runId }) => [
+          { type: EventType.RUN_STARTED, threadId: 'thread-1', runId },
+          {
+            type: EventType.RUN_FINISHED,
+            threadId: 'thread-1',
+            runId,
+            outcome: {
+              type: 'interrupt',
+              interrupts: [{ id: 'int1', reason: 'input_required', message: 'Which city?' }],
+            },
+          } as BaseEvent,
+        ],
+        ({ runId }) => [
+          { type: EventType.RUN_STARTED, threadId: 'thread-1', runId },
+          { type: EventType.RUN_FINISHED, threadId: 'thread-1', runId, outcome: { type: 'success' } } as BaseEvent,
+        ],
+      ]);
+      const runs: unknown[] = [];
+      const { result } = renderHook(() =>
+        useAgUiAgent(agent, {
+          runAgent: (parameters) => {
+            runs.push(parameters);
+            return agent.runAgent({ ...parameters, tools });
+          },
+        }),
+      );
+      await act(() => agent.runAgent({ tools }));
+      const entry = { interruptId: 'int1', status: 'resolved', payload: { city: 'Lisbon' } } as const;
+      await act(() => result.current.resolve(entry));
+      expect(runs).toEqual([{ resume: [entry] }]);
+      expect(agent.inputs[1]).toMatchObject({ tools, resume: [entry] });
+      expect(result.current.interrupts).toEqual([]);
+    });
+
+    it('calls the runAgent of the latest render, and respond stays the same function', async () => {
+      const agent = interruptingAgent();
+      agent.addMessage({ id: 'u1', role: 'user', content: 'Add zod' });
+      const calls: string[] = [];
+      const { result, rerender } = renderHook(
+        ({ name }: { name: string }) =>
+          // A new function on every render, as an inline arrow is.
+          useAgUiAgent(agent, {
+            runAgent: (parameters) => {
+              calls.push(name);
+              return agent.runAgent(parameters);
+            },
+          }),
+        { initialProps: { name: 'first' } },
+      );
+      const respond = result.current.respond;
+      await act(() => agent.runAgent());
+      rerender({ name: 'second' });
+      expect(result.current.respond).toBe(respond);
+      await act(() => result.current.respond({ id: 'int1', approved: true }));
+      expect(calls).toEqual(['second']);
+      expect(agent.inputs[1]?.resume).toEqual(resumed);
+    });
+
+    it('rejects when runAgent fails, as respond does without it', async () => {
+      const agent = interruptingAgent();
+      agent.addMessage({ id: 'u1', role: 'user', content: 'Add zod' });
+      const { result } = renderHook(() =>
+        useAgUiAgent(agent, { runAgent: () => Promise.reject(new Error('Runtime unreachable')) }),
+      );
+      await act(() => agent.runAgent());
+      await expect(act(() => result.current.respond({ id: 'int1', approved: true }))).rejects.toThrow(
+        'Runtime unreachable',
+      );
+      expect(agent.inputs).toHaveLength(1);
+    });
+  });
+
   it('follows a run through an interrupt, the approval and the resumed run', async () => {
     const agent = interruptingAgent();
     agent.addMessage({ id: 'u1', role: 'user', content: 'Add zod' });

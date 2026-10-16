@@ -34,6 +34,7 @@
     "smoke:nextjs": "node scripts/smoke-nextjs-minimal.mjs",
     "smoke:assistant-ui": "node scripts/smoke-assistant-ui.mjs",
     "smoke:coding-agent": "node scripts/smoke-coding-agent.mjs",
+    "smoke:copilotkit": "node scripts/smoke-copilotkit.mjs",
     "smoke:playground": "node scripts/smoke-playground.mjs",
     "smoke:styles": "node scripts/smoke-styles.mjs",
     "smoke:fresh-install": "node scripts/smoke-fresh-install.mjs"
