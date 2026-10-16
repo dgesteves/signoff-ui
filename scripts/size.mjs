@@ -28,7 +28,7 @@ const rows = [
   ['`Sources`', `export { Sources } from ${index};`, 10.5],
   ['`AgentStatus`', `export { AgentStatus, deriveAgentState } from ${index};`, 11.8],
   ['`RunMeter`', `export { RunMeter, useRunTiming } from ${index};`, 13],
-  ['`ApprovalCard`', `export { ApprovalCard, ToolApprovalCard } from ${index};`, 21.5],
+  ['`ApprovalCard`', `export { ApprovalCard, ToolApprovalCard } from ${index};`, 22.7],
   ['`useApprovalPolicy` (no markup)', `export { useApprovalPolicy } from ${index};`, 4.2],
   ['`toToolApproval` (`/core`, for a route)', `export { toToolApproval } from ${core};`, 2.7],
   ['`ToolCallTimeline`', `export { ToolCallTimeline } from ${index};`, 24],
@@ -42,7 +42,7 @@ const rows = [
   [
     '`AgentMessage` (`/custom-markdown`, for your own renderer: no react-markdown)',
     `export { AgentMessage } from ${customMarkdown};`,
-    35.5,
+    37.7,
     ['react-markdown', 'remark-gfm', 'remend'],
   ],
   ['`useAgUiAgent` (`/ag-ui`)', `export * from ${JSON.stringify(join(dist, 'ag-ui.js'))};`, 3.7],
@@ -52,7 +52,7 @@ const rows = [
     `export * from ${JSON.stringify(join(dist, 'assistant-ui.js'))};`,
     55,
   ],
-  ['Everything in the main entry', `export * from ${index};`, 126.5],
+  ['Everything in the main entry', `export * from ${index};`, 133],
 ];
 
 // The package a bundled module belongs to: the last node_modules segment of its path.

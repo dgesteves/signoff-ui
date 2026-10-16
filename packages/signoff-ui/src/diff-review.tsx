@@ -21,10 +21,11 @@ import type { DiffHunk, DiffLine, HunkDecision, ParsedFileDiff } from './lib/dif
 import { gapLines, type ContextGap, type DiffReviewComment } from './lib/review';
 import { mergeTokensWithSegments, TOKEN_CLASS, tokenizeLine } from './lib/highlight';
 import { useScrollRegion } from './lib/scroll-region';
+import { hasHidden, MARK_CLASS, revealText } from './lib/untrusted';
 import { ArrowDownIcon, ArrowUpIcon, CheckIcon, ChevronIcon, CommentIcon, UndoIcon, XIcon } from './lib/icons';
 import { Kbd, LiveRegion } from './lib/primitives';
 import { cn, type HeadingLevel } from './lib/utils';
-import { diffReviewLabels, commonLabels } from './lib/labels';
+import { diffReviewLabels, commonLabels, untrustedLabels } from './lib/labels';
 import { useLabels, WithLabels } from './labels';
 import {
   CONTEXT_STEP,
@@ -37,7 +38,7 @@ import {
 } from './use-diff-review';
 
 /** The labels' sections this module reads. */
-const LABELS = { diffReview: diffReviewLabels, common: commonLabels };
+const LABELS = { diffReview: diffReviewLabels, common: commonLabels, untrusted: untrustedLabels };
 
 export type { DiffWorkerFactory } from './lib/diff-async';
 export type { FileChange, HunkDecision } from './lib/diff';
@@ -616,6 +617,28 @@ const secondaryButton =
 const smallButton =
   'inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-md border px-2 text-xs font-medium whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-signoff-ring';
 
+/**
+ * Text from the agent, with marks in place of what does not show, so a path or a line reads as
+ * what it is: see `revealText`. `blanks` marks long runs of spaces too, for a path.
+ */
+function Revealed({ text, blanks = false }: { text: string; blanks?: boolean }) {
+  const L = useLabels(LABELS).untrusted;
+  return (
+    <>
+      {revealText(text, { blanks }).map((part, i) => {
+        if (typeof part === 'string') return part;
+        const name = part.kind === 'blank' ? L.blank(part.count) : L.invisible(part.count, part.codes);
+        return (
+          <span key={i} data-slot="signoff-untrusted" data-kind={part.kind} title={name} className={MARK_CLASS}>
+            <span aria-hidden="true">{part.shown}</span>
+            <span className="sr-only">{name}</span>
+          </span>
+        );
+      })}
+    </>
+  );
+}
+
 function PathLabel({ path, oldPath }: { path: string; oldPath?: string | undefined }) {
   const T = useLabels(LABELS).diffReview;
   const slash = path.lastIndexOf('/');
@@ -623,15 +646,23 @@ function PathLabel({ path, oldPath }: { path: string; oldPath?: string | undefin
     <span className="min-w-0 truncate">
       {oldPath && oldPath !== path && (
         <>
-          <span className="text-signoff-fg-subtle">{oldPath}</span>
+          <span className="text-signoff-fg-subtle">
+            <Revealed text={oldPath} blanks />
+          </span>
           <span className="text-signoff-fg-subtle" aria-hidden="true">
             {' → '}
           </span>
           <span className="sr-only">{` ${T.renamedTo} `}</span>
         </>
       )}
-      {slash > 0 && <span className="text-signoff-fg-subtle">{path.slice(0, slash + 1)}</span>}
-      <span className="text-signoff-fg font-medium">{path.slice(slash + 1)}</span>
+      {slash > 0 && (
+        <span className="text-signoff-fg-subtle">
+          <Revealed text={path.slice(0, slash + 1)} blanks />
+        </span>
+      )}
+      <span className="text-signoff-fg font-medium">
+        <Revealed text={path.slice(slash + 1)} blanks />
+      </span>
     </span>
   );
 }
@@ -1378,6 +1409,8 @@ function LineContent({
       ),
     [line, language],
   );
+  // A bidi control can make code read as other code (Trojan Source): such characters show as marks.
+  const reveal = useMemo(() => hasHidden(line.content), [line]);
   return (
     <span
       className={cn(
@@ -1404,7 +1437,7 @@ function LineContent({
                 )
           }
         >
-          {p.text}
+          {reveal ? <Revealed text={p.text} /> : p.text}
         </span>
       ))}
       {line.content === '' && ' '}

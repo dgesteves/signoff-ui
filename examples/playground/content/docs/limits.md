@@ -12,19 +12,19 @@ What each import adds to an app's JavaScript, minified and gzipped. React and Re
 | `useApprovalPolicy` (the rules without markup)                     |   4.1 kB |
 | `useAgUiAgent` from `/ag-ui`                                       |   3.5 kB |
 | `applyHunks`, `parseFileChange` from `/core` (with jsdiff)         |   6.7 kB |
-| `Sources`                                                          |  10.3 kB |
+| `Sources`                                                          |  10.4 kB |
 | `AgentStatus`                                                      |  11.4 kB |
 | `RunMeter`                                                         |  12.5 kB |
 | `useDiffReview` (the review without markup)                        |  16.3 kB |
-| `ApprovalCard`                                                     |  20.7 kB |
+| `ApprovalCard`                                                     |  21.6 kB |
 | `ToolCallTimeline`                                                 |  22.6 kB |
-| `AgentMessage` from `/custom-markdown` (with your own renderer)    |  34.9 kB |
-| `DiffReview`                                                       |  42.6 kB |
-| `signoffTools` from `/assistant-ui` (with DiffReview, approvals)   |  53.5 kB |
-| `AgentMessage` (markdown, reasoning, timeline, approvals, sources) |  88.6 kB |
-| Everything in the main entry                                       | 125.4 kB |
+| `AgentMessage` from `/custom-markdown` (with your own renderer)    |  35.8 kB |
+| `DiffReview`                                                       |  43.5 kB |
+| `signoffTools` from `/assistant-ui` (with DiffReview, approvals)   |  54.6 kB |
+| `AgentMessage` (markdown, reasoning, timeline, approvals, sources) |  90.1 kB |
+| Everything in the main entry                                       | 127.1 kB |
 
-Measured with `pnpm size`, which bundles each import from the built package with Rolldown and gzips it. CI runs it on every pull request, with a budget per row about 5% over its size. Most of `AgentMessage` is the markdown parser: `Markdown` alone is 64.3 kB. An app with its own renderer can [import `AgentMessage` without it](/docs/components/agent-message#your-own-markdown-renderer), and CI checks that react-markdown stays out of that bundle. Each component carries the English labels of the sections it reads, not the others.
+Measured with `pnpm size`, which bundles each import from the built package with Rolldown and gzips it. CI runs it on every pull request, with a budget per row about 5% over its size. Most of `AgentMessage` is the markdown parser: `Markdown` alone is 65.2 kB. An app with its own renderer can [import `AgentMessage` without it](/docs/components/agent-message#your-own-markdown-renderer), and CI checks that react-markdown stays out of that bundle. Each component carries the English labels of the sections it reads, not the others.
 
 `DiffReview`'s diff worker is a separate file the bundler emits, loaded only when a file is too large to diff while rendering: 18 kB minified, with jsdiff, in a Vite build.
 
@@ -90,6 +90,7 @@ Measured with `pnpm perf`, with a budget per case; the append's is 16 ms, under 
 - **Run state comes from you.** Parts carry no signal that a run has ended, so tool calls left behind by `stop()` or an interrupted history read "Stopped" only when you pass `active={false}`. `deriveAgentState` reports such a run as `stopped`, which the quickstart's `active` condition covers. An approved call whose result never came, because the run ended in an error, reads "Stopped" only with `failed` as well: the quickstart passes `failed={status === 'error'}`, and a run restored from history that ended in an error needs it too.
 - **Long timelines in find-in-page.** Past 150 calls, the calls far from the screen are not on the page: find-in-page and a screen reader's reading cursor reach only those near it, and `renderExtra`'s content for the others unmounts until they come back. The arrow keys, Home and End reach every call.
 - **Words for the agent stay English.** Every word a person sees or hears is a [label](/docs/labels), but what goes to the model (`reviewToolOutput`'s summary, `toToolApproval`'s reasons unless you pass its `reason`) is English. Right-to-left layouts have not been tested.
+- **Text that reads as something else.** A command, its `cwd`, a file path and a diff line show the characters that do not show (bidi controls such as U+202E, zero-width spaces, Unicode tags, control characters such as an ANSI escape) as a mark with their code points. A command or a path also shows a run of spaces 16 columns wide or more as its count, so spaces cannot push the end of a command out of view, and shows spaces other than U+0020 by their code points. A Markdown link whose text names another host than the one it goes to, or names it in look-alike letters, shows that host beside it. `Sources`, file attachments and Markdown link only to http, https, mailto and relative URLs, and an attached file to `data:` and `blob:` too: anything else is text, not a link. Not covered yet: arguments shown as JSON (a tool without a `command`) and tool output, which show those characters as they are; the argument fields while editing; look-alike letters in a command; and your own `preview` or Markdown renderer, which can call `revealText` and `safeUrl` from `signoff-ui/core`.
 - **Nesting in slots.** With `styles.css`, a component rendered in a slot of a component that is itself in a slot is styled up to two levels deep; deeper than that it renders unstyled.
 
 ## What's next

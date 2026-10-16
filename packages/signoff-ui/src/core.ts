@@ -102,6 +102,14 @@ export {
   type ToolApprovalStatusLike,
   type ToToolApprovalOptions,
 } from './lib/policy';
+export {
+  revealText,
+  safeUrl,
+  type RevealedMark,
+  type RevealedPart,
+  type RevealTextOptions,
+  type SafeUrlOptions,
+} from './lib/untrusted';
 export { addUsage, estimateCost, type CostBreakdown, type ModelPricing } from './lib/usage';
 export { cn, type HeadingLevel } from './lib/utils';
 export {

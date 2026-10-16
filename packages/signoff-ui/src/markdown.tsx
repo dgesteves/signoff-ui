@@ -8,12 +8,13 @@ import { ImageIcon } from './lib/icons';
 import { getImagePolicy, isAllowedImage } from './lib/images';
 import { CodeLines, CopyButton, Img } from './lib/primitives';
 import { useScrollRegion } from './lib/scroll-region';
+import { linkHostMismatch, MARK_CLASS, safeUrl } from './lib/untrusted';
 import { cn } from './lib/utils';
-import { markdownLabels, type SignoffLabelsInput } from './lib/labels';
+import { markdownLabels, untrustedLabels, type SignoffLabelsInput } from './lib/labels';
 import { useLabels, WithLabels } from './labels';
 
 /** The labels' sections this module reads. */
-const LABELS = { markdown: markdownLabels };
+const LABELS = { markdown: markdownLabels, untrusted: untrustedLabels };
 
 /* Minimal structural syntax-tree types, so the plugins need no @types packages. */
 interface TreeNode {
@@ -281,6 +282,24 @@ function CitationLink({
   );
 }
 
+/**
+ * Beside a link whose text names another host than the one it goes to
+ * (`[https://github.com/…](https://evil.example)`), or names it in look-alike letters: the host it
+ * goes to, which the link's accessible name says too.
+ */
+function LinkHost({ text, href }: { text: string; href: string }) {
+  const L = useLabels(LABELS).untrusted;
+  const host = linkHostMismatch(text, href);
+  if (!host) return null;
+  const name = L.linksTo(host);
+  return (
+    <span data-slot="signoff-link-host" title={name} className={cn(MARK_CLASS, 'ml-1')}>
+      <span aria-hidden="true">{host}</span>
+      <span className="sr-only">{name}</span>
+    </span>
+  );
+}
+
 /** Where images may load from (see `MarkdownProps.allowedImageHosts`). */
 const ImagePolicyContext = createContext(getImagePolicy(undefined));
 
@@ -327,7 +346,7 @@ function MarkdownImage({
   const external = /^https?:\/\//.test(src);
   return (
     <a
-      href={src}
+      href={safeUrl(src)}
       title={title}
       className={cn(linkClass, 'inline-flex items-baseline gap-1')}
       {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
@@ -420,15 +439,17 @@ const components: Components = {
         </CitationLink>
       );
     }
-    const external = typeof href === 'string' && /^https?:\/\//.test(href);
+    const safe = safeUrl(href);
+    const external = safe !== undefined && /^https?:\/\//.test(safe);
     return (
       <a
-        href={href}
+        href={safe}
         className={cn(linkClass, className)}
         {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
         {...omitNode(props)}
       >
         {children}
+        {safe && <LinkHost text={textOf(children)} href={safe} />}
       </a>
     );
   },

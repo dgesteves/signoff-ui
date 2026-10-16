@@ -1,4 +1,4 @@
-Every word the components show or announce, the visible text and what screen readers hear alike, comes from one object of labels. Translate it once and pass it to `SignoffLabelsProvider`, or pass part of it to a component's `labels` prop. There are 207 of them, 140 fixed strings and 67 functions, in twelve sections: one per component, one for `useApprovalPolicy`, and two shared ones, `format` for numbers and `common`.
+Every word the components show or announce, the visible text and what screen readers hear alike, comes from one object of labels. Translate it once and pass it to `SignoffLabelsProvider`, or pass part of it to a component's `labels` prop. There are 214 of them, 142 fixed strings and 72 functions, in thirteen sections: one per component, one for `useApprovalPolicy`, and three shared ones, `format` for numbers, `common`, and `untrusted` for the marks on text from the agent that could read as something it is not.
 
 ## Translate everything
 
@@ -385,5 +385,11 @@ export const pt: SignoffLabels = {
   approvalPolicy: { ruleDenial: 'Recusado por uma regra' },
   sources: { label: 'Fontes', document: 'Documento' },
   agentMessage: { attachedImage: 'Imagem anexada' },
+  untrusted: {
+    invisible: (count, codes) =>
+      count === 1 ? `Carácter invisível ${codes[0]}` : `${count} caracteres invisíveis: ${codes.join(', ')}`,
+    blank: (count) => `${count} ${plural(count, 'espaço em branco', 'espaços em branco')}`,
+    linksTo: (host) => `Leva a ${host}`,
+  },
 };
 ```

@@ -6,6 +6,7 @@ import { sourcesLabels, commonLabels, type SignoffLabelsInput } from './lib/labe
 import { useLabels } from './labels';
 import { getHostname } from './lib/format';
 import { ExternalIcon, FileIcon } from './lib/icons';
+import { safeUrl } from './lib/untrusted';
 import { cn } from './lib/utils';
 
 /** The labels' sections this module reads. */
@@ -81,6 +82,8 @@ export function Sources({
       >
         {items.map((item, i) => {
           const n = i + 1;
+          // A URL a link may not use (`javascript:`) is shown, not linked.
+          const href = safeUrl(item.url);
           const host = item.url ? getHostname(item.url) : (item.filename ?? item.mediaType ?? L.sources.document);
           const title = item.title ?? host;
           const content =
@@ -101,7 +104,7 @@ export function Sources({
                   </span>
                   <Monogram item={item} />
                   <span className="truncate">{host}</span>
-                  {item.url && (
+                  {href && (
                     <ExternalIcon
                       size={12}
                       className="ml-auto shrink-0 opacity-0 transition-opacity group-hover/source:opacity-100"
@@ -123,12 +126,12 @@ export function Sources({
             variant === 'chips'
               ? 'border-signoff-border bg-signoff-surface inline-flex h-7 max-w-full items-center gap-1.5 rounded-full border pr-2.5 pl-2 text-xs'
               : 'border-signoff-border bg-signoff-surface flex h-full flex-col rounded-lg border p-3',
-            item.url && 'hover:border-signoff-border-strong hover:bg-signoff-surface-2',
+            href && 'hover:border-signoff-border-strong hover:bg-signoff-surface-2',
           );
           return (
             <li key={`${item.id}-${i}`} id={`${idPrefix}-${n}`} className="min-w-0">
-              {item.url ? (
-                <a href={item.url} target="_blank" rel="noopener noreferrer" className={shared}>
+              {href ? (
+                <a href={href} target="_blank" rel="noopener noreferrer" className={shared}>
                   {content}
                   <span className="sr-only">{L.common.opensInNewTab}</span>
                 </a>
