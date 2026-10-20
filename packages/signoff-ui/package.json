@@ -109,7 +109,7 @@
     }
   },
   "dependencies": {
-    "@radix-ui/react-collapsible": "^1.1.21",
+    "@radix-ui/react-collapsible": "^1.2.1",
     "@radix-ui/react-toggle-group": "^1.1.20",
     "clsx": "^2.1.1",
     "diff": "^9.0.0",
