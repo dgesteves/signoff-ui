@@ -119,8 +119,8 @@
     "tailwind-merge": "^3.7.0"
   },
   "devDependencies": {
-    "@ag-ui/client": "^1.0.2",
-    "@ag-ui/core": "^1.0.2",
+    "@ag-ui/client": "^1.0.3",
+    "@ag-ui/core": "^1.0.3",
     "@agentclientprotocol/sdk": "^1.8.0",
     "@arethetypeswrong/cli": "^0.18.5",
     "@assistant-ui/react": "^0.15.27",
@@ -133,7 +133,7 @@
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
     "@vitest/coverage-v8": "^5.0.3",
-    "ai": "^7.0.137",
+    "ai": "^7.0.143",
     "axe-core": "^4.14.0",
     "jsdom": "^30.1.2",
     "postcss": "^8.5.29",

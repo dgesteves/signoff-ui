@@ -12,13 +12,13 @@
     "test": "node --import ./scripts/ts-resolve.mjs --test test/*.test.ts"
   },
   "dependencies": {
-    "@ag-ui/client": "^1.0.2",
-    "@ag-ui/core": "^1.0.2",
-    "@ai-sdk/openai": "^4.0.91",
-    "@ai-sdk/react": "^4.0.140",
+    "@ag-ui/client": "^1.0.3",
+    "@ag-ui/core": "^1.0.3",
+    "@ai-sdk/openai": "^4.0.96",
+    "@ai-sdk/react": "^4.0.147",
     "@radix-ui/react-dialog": "^1.2.0",
     "@vercel/analytics": "^2.0.1",
-    "ai": "^7.0.137",
+    "ai": "^7.0.143",
     "cmdk": "^1.1.1",
     "geist": "^1.7.2",
     "next": "^16.4.1",
