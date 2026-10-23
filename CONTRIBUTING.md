@@ -64,6 +64,14 @@ pnpm add --save-dev react@^18.2.0 react-dom@^18.2.0 @types/react@^18 @types/reac
 4. Add it to `ITEMS` in `scripts/registry.mjs` and run `pnpm registry:generate`, which works out the files and dependencies from its imports.
 5. Show it on the components page (`examples/playground/app/components/page.tsx`, with a demo in `examples/playground/components/demos/`), and document it on the docs site: an entry in `examples/playground/lib/components.ts` and how it behaves in `examples/playground/content/components/<slug>.md`. The README lists components in one table; add it there if it is one people should know about.
 
+## New integrations
+
+Until the public launch and for the first four weeks after it, the kit adds no new integration: no new chat kit, protocol adapter or agent SDK, whether as a package entry, a registry item, an example or a docs page. Fixes, docs and tests for the integrations it has go on as usual.
+
+The exception is an integration someone needs and asks for in an issue. Open a [feature request](https://github.com/dgesteves/signoff-ui/issues/new?template=feature_request.yml) that says what you are building and what it runs on (the chat kit, protocol or agent SDK, and its version), or add your case to an open one. After those four weeks, propose a new integration in an issue first, as any larger change.
+
+Each integration is in a [support tier](https://signoff-ui.vercel.app/docs/limits#support-tiers): Tier 1 when a CI job runs it on every pull request, Tier 2 when it is documented but not verified. A new one is Tier 2 until a CI job runs it.
+
 ## Changesets
 
 A change to the published package needs a changeset: run `pnpm changeset`, pick `signoff-ui`, choose patch for a fix or minor for a feature, and write a line or two for the changelog from a user's point of view. Docs, the examples and CI need none. Merging to `main` opens a "Version packages" pull request, and merging that publishes to npm. Its version step, `pnpm version-packages`, also moves `examples/coding-agent` to `signoff-ui@^<new version>`, so a copy of the example installs the release its code is written for. [RELEASING.md](./RELEASING.md) covers the release workflow, its dry run, and what to do when a release step fails.
