@@ -206,7 +206,7 @@ describe('labels: every word comes from them', () => {
       </>,
     );
     collect();
-    const [low, , , critical, nested] = screen.getAllByRole('group', { name: 'Запуск команды' });
+    const [low, medium, , critical, nested] = screen.getAllByRole('group', { name: 'Запуск команды' });
     // A critical action asks again.
     await user.click(within(critical!).getByRole('button', { name: m('approvalCard.approve') }));
     collect();
@@ -224,6 +224,10 @@ describe('labels: every word comes from them', () => {
     await user.click(within(nested!).getByRole('button', { name: m('approvalCard.editArguments') }));
     await user.type(within(nested!).getByRole('textbox', { name: m('approvalCard.argumentsJson') }), '{{');
     await user.click(within(nested!).getByRole('button', { name: m('approvalCard.approve') }));
+    collect();
+    // A lasting decision, announced with the calls its rule covers.
+    medium!.focus();
+    await user.keyboard('s');
     collect();
     unmount();
     inLabels(
@@ -365,6 +369,9 @@ describe('labels: every word comes from them', () => {
     await user.keyboard('{Shift>}a{/Shift}');
     collect();
     await user.click(screen.getByRole('radio', { name: m('diffReview.views.split') }));
+    collect();
+    // Sent.
+    await user.click(screen.getByRole('button', { name: starts('diffReview.apply') }));
     collect();
   });
 

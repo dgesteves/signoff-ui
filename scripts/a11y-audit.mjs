@@ -3,6 +3,10 @@
 // the docs and a phone viewport, in the dark theme and then the light one.
 // Unlike the jsdom tests, this checks color contrast with real layout. It also turns on axe's
 // target-size rule (WCAG 2.5.8, 24px targets), which axe leaves off by default.
+// Then what axe cannot see: in forced colours, focus rings, risk badges, the primary buttons, the
+// diff's + and − and what is pressed still show; in a right-to-left page, code, commands, paths and
+// rule patterns stay left to right; on a touch screen, text fields are 16px (iOS zooms into smaller
+// ones) and no key caps show.
 //
 //   pnpm build:lib && pnpm registry:build && pnpm build:playground
 //   pnpm a11y   # starts the built playground on :3230, or audits BASE_URL if set
@@ -208,6 +212,174 @@ for (const path of ['/docs/components/diff-review', '/components']) {
   await settle(light);
   await audit(light, `light · ${path} · a rejected hunk, 390px viewport`);
 }
+
+/** A check axe does not make: `problems` lists what is wrong, and an empty list passes. */
+function check(label, problems) {
+  failures += problems.length;
+  console.log(`${problems.length === 0 ? 'pass' : 'FAIL'}  ${label}`);
+  for (const problem of problems.slice(0, 5)) console.log(`      ${problem}`);
+}
+
+// Forced colours (Windows contrast themes) drop backgrounds and shadows: what showed through them
+// must show through a border, an outline or the text instead.
+const forced = await browser.newPage({ viewport: { width: 1440, height: 900 }, forcedColors: 'active' });
+if (await forced.evaluate(() => matchMedia('(forced-colors: active)').matches)) {
+  await forced.goto(`${BASE}/docs/components/approval-card`, { waitUntil: 'networkidle' });
+  await settle(forced);
+  check(
+    'forced colours · risk badges and the primary buttons keep a border',
+    await forced.evaluate(() =>
+      [
+        ...document.querySelectorAll('[data-slot="signoff-approval-risk"], [data-slot="signoff-approval-approve"]'),
+      ].flatMap((el) => {
+        const style = getComputedStyle(el);
+        return style.borderTopStyle !== 'none' && Number.parseFloat(style.borderTopWidth) >= 1
+          ? []
+          : [`${el.dataset.slot} "${el.textContent}": border ${style.borderTopStyle} ${style.borderTopWidth}`];
+      }),
+    ),
+  );
+  // The first card, as focus lands on it after a decision, then from the keyboard through its
+  // controls: each shows its focus ring.
+  const ring = () =>
+    forced.evaluate(() => {
+      const el = document.activeElement;
+      const style = getComputedStyle(el);
+      return el.closest('[data-slot="signoff-approval-card"]') &&
+        (style.outlineStyle === 'none' || Number.parseFloat(style.outlineWidth) < 1)
+        ? `${el.dataset.slot ?? el.tagName} "${el.textContent.slice(0, 30)}": outline ${style.outlineStyle} ${style.outlineWidth}`
+        : '';
+    });
+  await forced.locator('main [data-slot="signoff-approval-card"]').first().focus();
+  const rings = [await ring()];
+  for (let i = 0; i < 6; i++) {
+    await forced.keyboard.press('Tab');
+    rings.push(await ring());
+  }
+  check('forced colours · focus rings on an approval card', rings.filter(Boolean));
+  await forced.goto(`${BASE}/docs/components/diff-review`, { waitUntil: 'networkidle' });
+  await settle(forced);
+  const hunk = forced.locator('main [data-slot="signoff-diff-hunk"]').first();
+  await hunk.focus();
+  await forced.keyboard.press('a');
+  check(
+    'forced colours · a review: the hunk focus ring, + and − on its lines, and what is pressed or on',
+    await forced.evaluate(() => {
+      const problems = [];
+      const focused = document.activeElement;
+      const ring = getComputedStyle(focused);
+      if (ring.outlineStyle === 'none' || Number.parseFloat(ring.outlineWidth) < 1)
+        problems.push(`focused hunk: outline ${ring.outlineStyle} ${ring.outlineWidth}`);
+      const rows = [...document.querySelectorAll('main [data-line="add"], main [data-line="del"]')];
+      if (rows.length === 0) problems.push('no added or removed lines');
+      for (const row of rows) {
+        const glyph = row.dataset.line === 'add' ? '+' : '−';
+        const sign = [...row.children].find((el) => el.textContent === glyph);
+        const style = sign && getComputedStyle(sign);
+        if (!style || style.display === 'none' || style.visibility !== 'visible' || style.opacity === '0')
+          problems.push(`${row.dataset.line} line "${row.textContent.slice(0, 30)}": no ${glyph} that shows`);
+      }
+      // A pressed Accept has a thicker border than the Reject beside it; the layout picked is underlined.
+      // A moves focus on to the next hunk: the accepted one is the one before.
+      const accepted = document.querySelector('main [data-slot="signoff-diff-hunk"][data-decision="accepted"]');
+      const accept = accepted?.querySelector('button[aria-pressed="true"]');
+      const reject = accepted?.querySelector('button[aria-pressed="false"]');
+      if (!accept || !reject) problems.push('no pressed Accept beside an unpressed Reject');
+      else if (
+        Number.parseFloat(getComputedStyle(accept).borderTopWidth) <=
+        Number.parseFloat(getComputedStyle(reject).borderTopWidth)
+      )
+        problems.push('a pressed Accept looks like an unpressed one');
+      const on = focused.closest('[data-slot="signoff-diff-review"]').querySelector('[role="radio"][data-state="on"]');
+      if (!getComputedStyle(on).textDecorationLine.includes('underline'))
+        problems.push(`layout "${on.textContent}": not underlined`);
+      const submit = document.querySelector('main [data-slot="signoff-diff-submit"]');
+      if (submit && getComputedStyle(submit).borderTopStyle === 'none') problems.push('Apply: no border');
+      return problems;
+    }),
+  );
+} else {
+  console.log(`skip  forced colours: ${BROWSER} does not emulate them`);
+}
+await forced.close();
+
+// A right-to-left page (an Arabic translation): code, commands, paths and patterns stay left to
+// right, so bidi cannot reorder what runs or what is reviewed.
+const rtl = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+for (const path of [
+  '/docs/components/approval-card',
+  '/docs/components/diff-review',
+  '/docs/components/use-approval-policy',
+]) {
+  await rtl.goto(`${BASE}${path}`, { waitUntil: 'networkidle' });
+  await rtl.evaluate(() => {
+    document.documentElement.dir = 'rtl';
+  });
+  if (path.endsWith('use-approval-policy')) {
+    await rtl.getByRole('button', { name: 'npm test', exact: true }).click();
+    await rtl.locator('main [data-slot="signoff-approval-card"] input[type="text"]').first().waitFor();
+  }
+  check(
+    `dir=rtl · ${path}: code, commands, paths and rule patterns read left to right`,
+    await rtl.evaluate(() => {
+      const code = [
+        '[data-slot="signoff-diff-hunk"] [data-line]',
+        '[data-slot="signoff-approval-command"]',
+        '[data-slot="signoff-approval-card"] [data-slot="signoff-json-view"] pre',
+        '[data-slot="signoff-approval-card"] fieldset input[type="text"]',
+      ].join(', ');
+      const found = [...document.querySelectorAll(`main :is(${code})`)];
+      const page = getComputedStyle(document.querySelector('main [data-signoff]')).direction;
+      return [
+        ...(found.length === 0 ? ['none found'] : []),
+        ...(page === 'rtl' ? [] : [`the components are ${page}, not rtl`]),
+        ...found.flatMap((el) => {
+          const direction = getComputedStyle(el).direction;
+          return direction === 'ltr'
+            ? []
+            : [`${el.dataset.slot ?? el.tagName} "${el.textContent.slice(0, 40)}": ${direction}`];
+        }),
+      ];
+    }),
+  );
+}
+await rtl.close();
+
+// A touch screen: text fields are 16px or more, so iOS does not zoom into them, and there are no
+// key caps (the docs search and Ask's included).
+const touch = await browser.newPage({
+  viewport: { width: 390, height: 844 },
+  hasTouch: true,
+  isMobile: BROWSER !== 'firefox',
+});
+if (await touch.evaluate(() => matchMedia('(pointer: coarse)').matches)) {
+  const small = () =>
+    touch.evaluate(() =>
+      [...document.querySelectorAll('textarea, input:not([type="checkbox"]):not([type="radio"]), select')].flatMap(
+        (el) => {
+          const size = Number.parseFloat(getComputedStyle(el).fontSize);
+          return size >= 16 ? [] : [`${el.tagName} ${el.id || el.getAttribute('aria-label') || ''}: ${size}px`];
+        },
+      ),
+    );
+  await touch.goto(`${BASE}/docs/components/approval-card`, { waitUntil: 'networkidle' });
+  await touch.getByRole('button', { name: 'Edit arguments' }).first().click();
+  await touch.getByRole('button', { name: 'Deny with feedback' }).first().click();
+  const fields = await small();
+  const caps = await touch.evaluate(() =>
+    [...document.querySelectorAll('main [data-signoff] kbd')].flatMap((kbd) =>
+      kbd.checkVisibility() ? [`kbd "${kbd.textContent}" shows`] : [],
+    ),
+  );
+  check('touch · /docs/components/approval-card: fields at 16px, no key caps', [...fields, ...caps]);
+  await touch.goto(`${BASE}/docs/components/diff-review`, { waitUntil: 'networkidle' });
+  await touch.locator('main [data-slot="signoff-diff-hunk"] button[aria-keyshortcuts="C"]').first().click();
+  await touch.locator('main [data-slot="signoff-diff-comment-editor"] textarea').waitFor();
+  check('touch · /docs/components/diff-review: the comment and the docs search at 16px', await small());
+} else {
+  console.log(`skip  touch: ${BROWSER} does not emulate a coarse pointer`);
+}
+await touch.close();
 await browser.close();
 if (server) process.kill(-server.pid);
 

@@ -1,4 +1,4 @@
-Every word the components show or announce, the visible text and what screen readers hear alike, comes from one object of labels. Translate it once and pass it to `SignoffLabelsProvider`, or pass part of it to a component's `labels` prop. There are 214 of them, 142 fixed strings and 72 functions, in thirteen sections: one per component, one for `useApprovalPolicy`, and three shared ones, `format` for numbers, `common`, and `untrusted` for the marks on text from the agent that could read as something it is not.
+Every word the components show or announce, the visible text and what screen readers hear alike, comes from one object of labels. Translate it once and pass it to `SignoffLabelsProvider`, or pass part of it to a component's `labels` prop. There are 218 of them, 143 fixed strings and 75 functions, in thirteen sections: one per component, one for `useApprovalPolicy`, and three shared ones, `format` for numbers, `common`, and `untrusted` for the marks on text from the agent that could read as something it is not.
 
 ## Translate everything
 
@@ -49,7 +49,7 @@ A few return parts, where the components style or hide one of them: `moreAfter`,
 - **`deriveAgentState`'s detail** while the model writes: pass `writingResponse: labels.agentStatus.writingResponse`, since the helper runs outside any provider.
 - **Keys.** J, K, A, R, Y, N and the rest are the same in every language, and so are their `aria-keyshortcuts`. The hints that name them are labels.
 - **Your content.** Tool names, titles, descriptions, tool output and what `ToolMeta` renders are yours. A tool's displayed name defaults to its humanized name (`run_command` reads "Run command"), so give `ToolMeta` a `label` in your language.
-- **Right-to-left layouts** have not been tested yet.
+- **Right-to-left layouts** are not mirrored yet. Code, commands, paths and rule patterns stay left to right in a right-to-left page ([Accessibility](/docs/accessibility#right-to-left)).
 
 ## How it's tested
 
@@ -168,6 +168,16 @@ export const pt: SignoffLabels = {
       ]
         .filter(Boolean)
         .join(', ')}, ou ${mod} Enter para aprovar.`,
+    summary: ({ risk, command, cwd, args, rule }) =>
+      [
+        risk && `${risk}.`,
+        command !== undefined
+          ? `Executa ${command}${cwd ? ` em ${cwd}` : ''}.`
+          : args.length > 0 && `Argumentos: ${args.map((arg) => arg.join(' ')).join(', ')}.`,
+        rule && `Uma decisão duradoura abrange ${rule}.`,
+      ]
+        .filter(Boolean)
+        .join(' '),
     resolved: {
       'allow-once': 'Aprovado',
       'allow-session': 'Aprovado nesta sessão',
@@ -175,6 +185,7 @@ export const pt: SignoffLabels = {
       'deny-once': 'Recusado',
       'deny-always': 'Recusado sempre',
     },
+    resolvedFor: (resolved, rule) => `${resolved}: ${rule}.`,
     approved: 'Aprovado',
     denied: 'Recusado',
     autoApproved: 'Aprovado automaticamente',
@@ -189,6 +200,7 @@ export const pt: SignoffLabels = {
         : `${tool} com ${args.map(([name, pattern]) => `${name} ${pattern}`).join(', ')}`;
     },
     critical: 'Ação crítica. Prima aprovar outra vez para confirmar.',
+    confirmCancelled: 'Confirmação cancelada.',
     invalidJson: 'Os argumentos não são JSON válido.',
     editArguments: 'Editar argumentos',
     doneEditing: 'Concluir edição',
@@ -319,9 +331,18 @@ export const pt: SignoffLabels = {
     commentUpdated: 'Comentário atualizado.',
     commentDeleted: 'Comentário eliminado.',
     unchangedLines: (count) => `${count} ${plural(count, 'linha inalterada', 'linhas inalteradas')}`,
-    moreAfter: (count, hunk) => ({ visible: `mais ${count}`, hidden: ` linhas inalteradas depois do bloco ${hunk}` }),
-    moreBefore: (count, hunk) => ({ visible: `mais ${count}`, hidden: ` linhas inalteradas antes do bloco ${hunk}` }),
-    showAll: (count) => ({ visible: 'Mostrar todas', hidden: ` as ${count} linhas inalteradas` }),
+    moreAfter: (count, hunk) => ({
+      visible: `mais ${count}`,
+      hidden: ` ${plural(count, 'linha inalterada', 'linhas inalteradas')} depois do bloco ${hunk}`,
+    }),
+    moreBefore: (count, hunk) => ({
+      visible: `mais ${count}`,
+      hidden: ` ${plural(count, 'linha inalterada', 'linhas inalteradas')} antes do bloco ${hunk}`,
+    }),
+    showAll: (count) => ({
+      visible: 'Mostrar todas',
+      hidden: count === 1 ? ' a linha inalterada' : ` as ${count} linhas inalteradas`,
+    }),
     expanded: (count) => `A mostrar mais ${count} ${plural(count, 'linha inalterada', 'linhas inalteradas')}.`,
     reviewed: 'revistos',
     filesViewed: (viewed, total) => `${viewed} de ${total} ficheiros vistos`,
@@ -329,6 +350,10 @@ export const pt: SignoffLabels = {
     comparingFiles: 'a comparar ficheiros…',
     skipped: 'os blocos por rever ficam de fora',
     apply: (accepted, total) => (accepted > 0 ? `Aplicar ${accepted} de ${total}` : 'Aplicar alterações'),
+    submitted: (accepted, total, comments) =>
+      `Revisão enviada: ${accepted} de ${total} ${plural(accepted, 'aceite', 'aceites')}${
+        comments > 0 ? `, ${comments} ${plural(comments, 'comentário', 'comentários')}` : ''
+      }.`,
     acceptAll: 'Aceitar tudo',
     rejectAll: 'Rejeitar tudo',
     keyHints: { move: 'mover', accept: 'aceitar', reject: 'rejeitar', comment: 'comentar', apply: 'aplicar' },

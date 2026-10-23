@@ -22,10 +22,17 @@ import {
   type ToolPart,
 } from './lib/ai';
 import { humanizeToolName, safeStringify } from './lib/format';
-import { approvalCardLabels, commonLabels, type SignoffLabels, type SignoffLabelsInput } from './lib/labels';
+import {
+  approvalCardLabels,
+  commonLabels,
+  untrustedLabels,
+  type SignoffLabels,
+  type SignoffLabelsInput,
+} from './lib/labels';
 import { evaluateRules, suggestArgs, type ApprovalDecision, type ApprovalRequest } from './lib/policy';
 import { useScrollRegion } from './lib/scroll-region';
 import { Revealed } from './lib/revealed';
+import { revealText } from './lib/untrusted';
 import { BanIcon, CheckIcon, ShieldIcon, TerminalIcon } from './lib/icons';
 import { JsonView, Kbd, LiveRegion } from './lib/primitives';
 import { useIsMac } from './lib/hooks';
@@ -35,7 +42,7 @@ import type { ApprovalOutcome, ApprovalPolicy } from './use-approval-policy';
 import { useLabels, WithLabels } from './labels';
 
 /** The labels' sections this module reads. */
-const LABELS = { approvalCard: approvalCardLabels, common: commonLabels };
+const LABELS = { approvalCard: approvalCardLabels, common: commonLabels, untrusted: untrustedLabels };
 
 export type { ApprovalStatus, RiskLevel };
 export type { ApprovalDecision } from './lib/policy';
@@ -234,8 +241,11 @@ const SLOT: Record<ApprovalDecision, string> = {
 function CommandPreview({ command, cwd, label }: { command: string; cwd: string | undefined; label: string }) {
   const scrollRef = useScrollRegion<HTMLDivElement>(label);
   return (
+    // Left to right in a right-to-left page too, so bidi cannot reorder what runs: `~/app` stays `~/app`.
     <div
       ref={scrollRef}
+      dir="ltr"
+      data-slot="signoff-approval-command"
       className="border-signoff-border bg-signoff-bg/70 font-signoff-mono focus-visible:outline-signoff-ring overflow-x-auto rounded-lg border px-3 py-2.5 text-[13px] leading-5 focus-visible:outline-2 focus-visible:outline-offset-1"
     >
       {cwd && (
@@ -253,13 +263,32 @@ function CommandPreview({ command, cwd, label }: { command: string; cwd: string 
   );
 }
 
+/** The command a call runs, and where: from `{ command, cwd }` arguments. */
+function commandOf(input: unknown) {
+  if (input && typeof input === 'object' && 'command' in input && typeof input.command === 'string')
+    return { command: input.command, cwd: 'cwd' in input && typeof input.cwd === 'string' ? input.cwd : undefined };
+}
+
 function DefaultPreview({ input, L }: { input: unknown; L: SignoffLabels['approvalCard'] }) {
-  if (input && typeof input === 'object' && 'command' in input && typeof input.command === 'string') {
-    const cwd = 'cwd' in input && typeof input.cwd === 'string' ? input.cwd : undefined;
-    return <CommandPreview command={input.command} cwd={cwd} label={L.command} />;
-  }
+  const run = commandOf(input);
+  if (run) return <CommandPreview command={run.command} cwd={run.cwd} label={L.command} />;
   if (input === undefined) return null;
-  return <JsonView value={input} label={L.arguments} collapseAfter={14} />;
+  return (
+    <div dir="ltr">
+      <JsonView value={input} label={L.arguments} collapseAfter={14} />
+    </div>
+  );
+}
+
+/** Text from the agent as a screen reader hears it, what does not show named as `Revealed` names it. */
+function spoken(text: string, L: SignoffLabels['untrusted']) {
+  return revealText(text, { blanks: true })
+    .map((part) =>
+      typeof part === 'string'
+        ? part
+        : ` ${part.kind === 'blank' ? L.blank(part.count, part.lines) : L.invisible(part.count, part.codes)} `,
+    )
+    .join('');
 }
 
 /** An object of strings, numbers and booleans, edited as a form; anything else is edited as JSON. */
@@ -275,8 +304,9 @@ function isFlatRecord(value: unknown): value is Record<string, string | number |
 
 const sameValue = (a: unknown, b: unknown) => safeStringify(a) === safeStringify(b);
 
+/** On a touch screen a text field is 16px or more: iOS zooms the page into a smaller one it focuses. */
 const field =
-  'border-signoff-border-strong bg-signoff-bg text-signoff-fg placeholder:text-signoff-fg-subtle focus-visible:outline-signoff-ring w-full rounded-lg border px-3 py-2 text-[13px] focus-visible:outline-2 focus-visible:outline-offset-0';
+  'border-signoff-border-strong bg-signoff-bg text-signoff-fg placeholder:text-signoff-fg-subtle focus-visible:outline-signoff-ring w-full rounded-lg border px-3 py-2 text-[13px] focus-visible:outline-2 focus-visible:outline-offset-0 pointer-coarse:text-[length:max(16px,1rem)]';
 
 /** The arguments, editable: a field per argument for a flat object, JSON for anything else. */
 function ArgumentsEditor({
@@ -324,6 +354,7 @@ function ArgumentsEditor({
               {long ? (
                 <textarea
                   id={id}
+                  dir="auto"
                   rows={3}
                   value={text}
                   onChange={(e) => onChange({ kind: 'form', record: { ...record, [key]: e.target.value } })}
@@ -332,6 +363,7 @@ function ArgumentsEditor({
               ) : (
                 <input
                   id={id}
+                  dir="auto"
                   type={kind === 'number' ? 'number' : 'text'}
                   value={text}
                   onChange={(e) =>
@@ -357,6 +389,7 @@ function ArgumentsEditor({
       </label>
       <textarea
         id={`${idPrefix}-json`}
+        dir="ltr"
         rows={Math.min(14, Math.max(4, value.text.split('\n').length))}
         value={value.text}
         spellCheck={false}
@@ -415,15 +448,28 @@ const globalCards: GlobalCard[] = [];
  * What a critical action's first press armed. It holds until the second press, Escape, or focus
  * or a click going outside `ref`'s element, with no timer to beat: the person confirms at their
  * own pace, after a screen reader has read the request (WCAG 2.2.1). It belongs to the `call` it
- * was armed on, so new arguments, or new calls waiting, start disarmed.
+ * was armed on, so new arguments, or new calls waiting, start disarmed. `onCancel` hears of a
+ * press let go (`disarm`), to say so: the button only reads as it did before.
  */
-function useArmed<T>(ref: RefObject<HTMLElement | null>, call: unknown) {
+function useArmed<T>(ref: RefObject<HTMLElement | null>, call: unknown, onCancel: () => void) {
   const [armed, setArmed] = useState<{ value: T; call: unknown }>();
   const stale = armed !== undefined && !sameValue(armed.call, call);
   // Adjusting state during render, not in an effect, as for a stale edit.
   if (stale) setArmed(undefined);
-  // The same function on every render, so an effect can hold it without running again.
-  const disarm = useCallback(() => setArmed(undefined), []);
+  // What `disarm` reads: whether a press is armed now, and the latest `onCancel`.
+  const live = useRef({ armed: false, onCancel });
+  useEffect(() => {
+    live.current = { armed: armed !== undefined && !stale, onCancel };
+  });
+  // The same function on every render, so an effect can hold it without running again. Escape and
+  // focus leaving can both fire for one move: the first lets the press go and says so, once.
+  const disarm = useCallback(() => {
+    if (live.current.armed) {
+      live.current.armed = false;
+      live.current.onCancel();
+    }
+    setArmed(undefined);
+  }, []);
   useEffect(() => {
     if (armed === undefined) return;
     const element = ref.current;
@@ -455,7 +501,11 @@ function useArmed<T>(ref: RefObject<HTMLElement | null>, call: unknown) {
       document.removeEventListener('pointerdown', onOutside, true);
     };
   }, [armed, ref, disarm]);
-  const arm = (value: T | undefined) => setArmed(value === undefined ? undefined : { value, call });
+  const arm = (value: T | undefined) => {
+    // Let go by a decision, not cancelled: Chrome's focusout as the decided bar leaves says nothing.
+    if (value === undefined) live.current.armed = false;
+    setArmed(value === undefined ? undefined : { value, call });
+  };
   return [stale ? undefined : armed?.value, arm, disarm] as const;
 }
 
@@ -513,6 +563,7 @@ export function ApprovalCard({
   const ids = useId();
   const titleId = `${ids}-title`;
   const descId = `${ids}-desc`;
+  const summaryId = `${ids}-summary`;
   const hintId = `${ids}-hint`;
   const reasonId = `${ids}-reason`;
   const cardRef = useRef<HTMLElement>(null);
@@ -554,12 +605,18 @@ export function ApprovalCard({
   const runInput = finalInput !== undefined ? finalInput : input;
   // A critical press is for the arguments it would approve, in this pending period: new ones from
   // the agent, an edit made after it, or a card that asks again start disarmed.
-  const [confirming, setConfirming, disarm] = useArmed<ApprovalDecision>(cardRef, [status, input, runInput]);
+  const [confirming, setConfirming, disarm] = useArmed<ApprovalDecision>(cardRef, [status, input, runInput], () =>
+    setAnnouncement(L.confirmCancelled),
+  );
 
   // The rule's scope, suggested from the arguments the call will run with.
   const suggested = useMemo(() => ruleArgs ?? suggestArgs(runInput), [ruleArgs, runInput]);
   const [scope, setScope] = useState<{ any: boolean; args: Record<string, string> } | undefined>();
   const scopeArgs = scope ?? { any: !suggested, args: suggested ?? {} };
+  // The calls a lasting decision covers, in words.
+  const rule = remembers
+    ? L.describeRule({ tool: toolName, args: scopeArgs.any ? undefined : scopeArgs.args })
+    : undefined;
 
   // One decision per pending period, so a double click cannot send two (see `status`).
   const decided = useRef(false);
@@ -596,11 +653,11 @@ export function ApprovalCard({
       setAnnouncement(L.critical);
       return;
     }
+    const lasting = decision !== 'allow-once' && decision !== 'deny-once';
     setConfirming(undefined);
-    setAnnouncement(L.resolved[decision]);
+    setAnnouncement(lasting && rule ? L.resolvedFor(L.resolved[decision], rule) : L.resolved[decision]);
     cardRef.current?.focus();
     const why = withReason?.trim() ? withReason.trim() : undefined;
-    const lasting = decision !== 'allow-once' && decision !== 'deny-once';
     const choice: ApprovalChoice = {
       decision,
       ...(why ? { reason: why } : {}),
@@ -710,6 +767,24 @@ export function ApprovalCard({
     }
   };
 
+  // Focus on the card reads its title, then this: the risk, what runs, and what S or A would remember.
+  const run = commandOf(runInput);
+  const summary = L.summary({
+    risk: risk && L.risk[risk],
+    command: run && spoken(run.command, all.untrusted),
+    cwd: run?.cwd && spoken(run.cwd, all.untrusted),
+    args:
+      !run && runInput && typeof runInput === 'object' && !Array.isArray(runInput)
+        ? Object.entries(runInput)
+            .slice(0, 3)
+            .map(([name, value]) => {
+              const text = spoken(typeof value === 'string' ? value : safeStringify(value, 0), all.untrusted);
+              return [name, text.length > 80 ? `${text.slice(0, 79)}…` : text] as const;
+            })
+        : [],
+    rule,
+  });
+
   const keyHint = L.keyboardHint(
     {
       approve: has('allow-once'),
@@ -744,7 +819,7 @@ export function ApprovalCard({
     'border-signoff-border-strong bg-signoff-surface-2 text-signoff-fg hover:border-signoff-fg-subtle hover:bg-signoff-bg focus-visible:outline-signoff-ring inline-flex h-8 cursor-pointer items-center gap-2 rounded-lg border px-3 text-[13px] font-medium whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 aria-disabled:cursor-not-allowed aria-disabled:opacity-60';
   const primary = (armed: boolean) =>
     cn(
-      'focus-visible:outline-signoff-ring inline-flex h-8 cursor-pointer items-center gap-2 rounded-lg px-3 text-[13px] font-semibold whitespace-nowrap transition-[background-color,box-shadow] focus-visible:outline-2 focus-visible:outline-offset-2 aria-disabled:cursor-not-allowed aria-disabled:opacity-60',
+      'focus-visible:outline-signoff-ring inline-flex h-8 cursor-pointer items-center gap-2 rounded-lg px-3 text-[13px] font-semibold whitespace-nowrap transition-[background-color,box-shadow] focus-visible:outline-2 focus-visible:outline-offset-2 aria-disabled:cursor-not-allowed aria-disabled:opacity-60 forced-colors:border',
       armed
         ? 'bg-signoff-hot text-signoff-on-hot hover:bg-signoff-hot/90'
         : 'bg-signoff-accent text-signoff-on-accent hover:bg-signoff-accent/90 shadow-[0_0_0_1px_color-mix(in_oklab,var(--signoff-accent)_40%,transparent),0_6px_20px_-8px_var(--signoff-accent)]',
@@ -774,7 +849,10 @@ export function ApprovalCard({
       {shortcuts && (
         <Kbd
           aria-hidden="true"
-          className={decision === 'allow-once' ? 'border-current/25 bg-transparent text-current/80' : undefined}
+          className={cn(
+            'pointer-coarse:hidden',
+            decision === 'allow-once' && 'border-current/25 bg-transparent text-current/80',
+          )}
         >
           {CHOICE[decision].key}
         </Kbd>
@@ -796,12 +874,15 @@ export function ApprovalCard({
         aria-labelledby={titleId}
         aria-describedby={
           pending
-            ? [description ? descId : '', shortcuts ? hintId : ''].filter(Boolean).join(' ') || undefined
+            ? [description ? descId : '', summary ? summaryId : '', shortcuts ? hintId : '']
+                .filter(Boolean)
+                .join(' ') || undefined
             : undefined
         }
         onKeyDown={onKeyDown}
         className={cn(
-          'rounded-signoff bg-signoff-surface font-signoff-sans text-signoff-fg focus-visible:outline-signoff-ring relative overflow-hidden border outline-none focus-visible:outline-2 focus-visible:outline-offset-2',
+          // outline-none sets no style for the ring to draw with: focus-visible sets one back.
+          'rounded-signoff bg-signoff-surface font-signoff-sans text-signoff-fg focus-visible:outline-signoff-ring relative overflow-hidden border outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid',
           pending ? r.card : 'border-signoff-border bg-signoff-surface/60',
           pending && 'motion-safe:animate-signoff-enter',
           className,
@@ -836,6 +917,7 @@ export function ApprovalCard({
                     </p>
                     {risk && (
                       <span
+                        data-slot="signoff-approval-risk"
                         className={cn(
                           'shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap',
                           RISK[risk].badge,
@@ -851,6 +933,12 @@ export function ApprovalCard({
                   {description && (
                     <p id={descId} className="text-signoff-fg-muted mt-1 text-[13px] leading-relaxed">
                       {description}
+                    </p>
+                  )}
+                  {/* Read as the card's description only: the badge and the preview show it. */}
+                  {summary && (
+                    <p id={summaryId} hidden>
+                      {summary}
                     </p>
                   )}
                 </div>
@@ -948,7 +1036,10 @@ export function ApprovalCard({
 
               <div className="@container flex flex-wrap items-center gap-2">
                 {shortcuts && (
-                  <p id={hintId} className="text-signoff-fg-subtle mr-auto hidden items-center gap-1.5 text-xs sm:flex">
+                  <p
+                    id={hintId}
+                    className="text-signoff-fg-subtle mr-auto hidden items-center gap-1.5 text-xs sm:flex pointer-coarse:hidden"
+                  >
                     <span className="sr-only">{keyHint}</span>
                     <span aria-hidden="true" className="flex items-center gap-1.5">
                       <Kbd>{mod}</Kbd>
@@ -1031,7 +1122,9 @@ function RuleScope({
       <legend className="sr-only">{L.ruleLegend}</legend>
       <p className="text-signoff-fg-muted text-xs">
         {remembered.before}
-        <span className="font-signoff-mono text-signoff-fg">{toolName}</span>
+        <span dir="ltr" className="font-signoff-mono text-signoff-fg">
+          {toolName}
+        </span>
         {remembered.after}
       </p>
       {!scope.any &&
@@ -1045,6 +1138,7 @@ function RuleScope({
               <input
                 id={id}
                 type="text"
+                dir="ltr"
                 value={scope.args[name] ?? ''}
                 onChange={(e) => onChange({ ...scope, args: { ...scope.args, [name]: e.target.value } })}
                 className={cn(field, 'font-signoff-mono py-1 text-xs')}
@@ -1218,6 +1312,7 @@ export function ToolApprovalCard({
       // Editing only where an edit can be applied: never silently dropped on the way to the agent.
       editable={!!onEditInput && (editable ?? true)}
       onDecide={send}
+      data-approval-id={approvalId}
       {...props}
     />
   );
@@ -1261,6 +1356,10 @@ export interface ToolApprovalBatchProps extends Omit<ComponentPropsWithoutRef<'d
  * calls. Each is answered once, as Approve or Deny on its own card would; with a critical one among
  * them, Approve all asks for a second press. Approve all runs each call with the agent's arguments:
  * it does not see an edit made on a card (`editable`), so approve an edited call on its own card.
+ *
+ * Once the answers reach the parts, the bar goes. What it did is still announced, and focus, which
+ * was on its button, moves to the first of their `ToolApprovalCard`s, as deciding on a card keeps
+ * focus on that card.
  */
 export function ToolApprovalBatch({
   parts,
@@ -1272,9 +1371,13 @@ export function ToolApprovalBatch({
   className,
   ...props
 }: ToolApprovalBatchProps) {
-  const B = useLabels(LABELS, labels).approvalCard.batch;
+  const A = useLabels(LABELS, labels).approvalCard;
+  const B = A.batch;
   const [announcement, setAnnouncement] = useState('');
   const groupRef = useRef<HTMLDivElement>(null);
+  const statusRef = useRef<HTMLDivElement>(null);
+  /** The requests Approve all or Deny all answered, until they leave `waiting`. */
+  const answered = useRef<string[]>(undefined);
   const waiting = parts.filter((part) => {
     const request = approvalRequestOf(part);
     return (
@@ -1289,8 +1392,42 @@ export function ToolApprovalBatch({
   const [confirming, setConfirming] = useArmed<true>(
     groupRef,
     waiting.map((part) => [part.toolCallId, part.input]),
+    () => setAnnouncement(A.confirmCancelled),
   );
-  if (waiting.length < min) return null;
+  useEffect(() => {
+    if (!announcement) return;
+    const id = setTimeout(() => setAnnouncement(''), ANNOUNCEMENT_MS);
+    return () => clearTimeout(id);
+  }, [announcement]);
+  // The answers have reached the parts: the bar has gone, and focus with it, from its button to
+  // <body>. Move it to the first card answered, unless the person has moved it already.
+  useEffect(() => {
+    const ids = answered.current;
+    if (!ids || waiting.some((part) => ids.includes(part.approval!.id))) return;
+    answered.current = undefined;
+    const focused = focusedElement();
+    if (focused && focused !== document.body) return;
+    const root = (statusRef.current?.getRootNode() ?? document) as Document | ShadowRoot;
+    [...root.querySelectorAll<HTMLElement>('[data-slot="signoff-approval-card"][data-approval-id]')]
+      .find((card) => ids.includes(card.dataset.approvalId!))
+      ?.focus();
+  });
+  const shown = waiting.length >= min;
+  // The announcement outlives the bar: answering removes the bar in the commit that announces it.
+  const status = (shown || announcement !== '') && (
+    <div
+      ref={statusRef}
+      data-signoff
+      data-slot="signoff-approval-batch-status"
+      className="sr-only"
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+    >
+      {announcement}
+    </div>
+  );
+  if (!shown) return status || null;
   // A held Enter clicks the focused button on every repeat: one press, one answer.
   const ignoreRepeat = (event: KeyboardEvent<HTMLButtonElement>) => {
     if (event.repeat && event.key === 'Enter') event.preventDefault();
@@ -1306,6 +1443,7 @@ export function ToolApprovalBatch({
       return;
     }
     setConfirming(undefined);
+    answered.current = waiting.map((part) => part.approval!.id);
     for (const part of waiting) {
       const request = approvalRequestOf(part)!;
       const outcome = policy?.decide(request, decision);
@@ -1314,51 +1452,53 @@ export function ToolApprovalBatch({
     setAnnouncement(B.answered(waiting.length, decision === 'allow-once'));
   };
   // The second click of a double click is the same press: it does not confirm Approve all.
-  const press = (decision: 'allow-once' | 'deny-once') => (event: MouseEvent) => {
+  const press = (decision: 'allow-once' | 'deny-once', event: MouseEvent) => {
     if (event.detail <= 1) answerAll(decision);
   };
   return (
-    <div
-      ref={groupRef}
-      data-signoff
-      data-slot="signoff-approval-batch"
-      role="group"
-      // A click focuses the group where it doesn't focus the button (Safari), so focus leaving it
-      // can disarm Approve all there too. Not in the tab order: its buttons are.
-      tabIndex={-1}
-      aria-label={B.group}
-      className={cn(
-        'rounded-signoff border-signoff-warn/40 bg-signoff-surface font-signoff-sans text-signoff-fg flex flex-wrap items-center gap-x-3 gap-y-2 border px-3.5 py-2.5 text-[13px] outline-none',
-        className,
-      )}
-      {...props}
-    >
-      <LiveRegion>{announcement}</LiveRegion>
-      <ShieldIcon size={15} className="text-signoff-warn-fg shrink-0" />
-      <span className="text-signoff-fg font-medium">{B.waiting(waiting.length)}</span>
-      <span className="ml-auto flex items-center gap-2">
-        <button
-          type="button"
-          onKeyDown={ignoreRepeat}
-          onClick={press('deny-once')}
-          className="border-signoff-border-strong text-signoff-fg hover:bg-signoff-surface-2 focus-visible:outline-signoff-ring inline-flex h-7 cursor-pointer items-center rounded-lg border px-2.5 text-xs font-medium focus-visible:outline-2 focus-visible:outline-offset-2"
-        >
-          {B.denyAll}
-        </button>
-        <button
-          type="button"
-          onKeyDown={ignoreRepeat}
-          onClick={press('allow-once')}
-          className={cn(
-            'focus-visible:outline-signoff-ring inline-flex h-7 cursor-pointer items-center rounded-lg px-2.5 text-xs font-semibold focus-visible:outline-2 focus-visible:outline-offset-2',
-            confirming
-              ? 'bg-signoff-hot text-signoff-on-hot hover:bg-signoff-hot/90'
-              : 'bg-signoff-accent text-signoff-on-accent hover:bg-signoff-accent/90',
-          )}
-        >
-          {confirming ? B.confirm : B.approveAll}
-        </button>
-      </span>
-    </div>
+    <>
+      {status}
+      <div
+        ref={groupRef}
+        data-signoff
+        data-slot="signoff-approval-batch"
+        role="group"
+        // A click focuses the group where it doesn't focus the button (Safari), so focus leaving it
+        // can disarm Approve all there too. Not in the tab order: its buttons are.
+        tabIndex={-1}
+        aria-label={B.group}
+        className={cn(
+          'rounded-signoff border-signoff-warn/40 bg-signoff-surface font-signoff-sans text-signoff-fg flex flex-wrap items-center gap-x-3 gap-y-2 border px-3.5 py-2.5 text-[13px] outline-none',
+          className,
+        )}
+        {...props}
+      >
+        <ShieldIcon size={15} className="text-signoff-warn-fg shrink-0" />
+        <span className="text-signoff-fg font-medium">{B.waiting(waiting.length)}</span>
+        <span className="ml-auto flex items-center gap-2">
+          <button
+            type="button"
+            onKeyDown={ignoreRepeat}
+            onClick={(event) => press('deny-once', event)}
+            className="border-signoff-border-strong text-signoff-fg hover:bg-signoff-surface-2 focus-visible:outline-signoff-ring inline-flex h-7 cursor-pointer items-center rounded-lg border px-2.5 text-xs font-medium focus-visible:outline-2 focus-visible:outline-offset-2"
+          >
+            {B.denyAll}
+          </button>
+          <button
+            type="button"
+            onKeyDown={ignoreRepeat}
+            onClick={(event) => press('allow-once', event)}
+            className={cn(
+              'focus-visible:outline-signoff-ring inline-flex h-7 cursor-pointer items-center rounded-lg px-2.5 text-xs font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 forced-colors:border',
+              confirming
+                ? 'bg-signoff-hot text-signoff-on-hot hover:bg-signoff-hot/90'
+                : 'bg-signoff-accent text-signoff-on-accent hover:bg-signoff-accent/90',
+            )}
+          >
+            {confirming ? B.confirm : B.approveAll}
+          </button>
+        </span>
+      </div>
+    </>
   );
 }

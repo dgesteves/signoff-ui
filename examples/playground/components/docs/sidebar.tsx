@@ -147,7 +147,7 @@ function NavLinks({
           }}
           placeholder="Search docs"
           autoComplete="off"
-          className="border-line focus-visible:outline-cyan-soft bg-code text-fg placeholder:text-fg-subtle h-9 w-full rounded-lg border pr-16 pl-3 text-[13.5px] focus-visible:border-transparent focus-visible:outline-2 [&::-webkit-search-cancel-button]:hidden"
+          className="border-line focus-visible:outline-cyan-soft bg-code text-fg placeholder:text-fg-subtle h-9 w-full rounded-lg border pr-16 pl-3 text-[13.5px] focus-visible:border-transparent focus-visible:outline-2 pointer-coarse:text-base [&::-webkit-search-cancel-button]:hidden"
         />
         <kbd
           aria-hidden="true"

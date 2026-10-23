@@ -256,6 +256,8 @@ export function DiffReview({
   const T = L.diffReview;
   const title = titleProp ?? T.title;
   const Heading = `h${headingLevel}` as const;
+  // What Apply sent, said until the review has something else to say.
+  const [sent, setSent] = useState<{ text: string; after: string }>();
   const review = useDiffReview({
     files,
     decisions,
@@ -267,7 +269,17 @@ export function DiffReview({
     viewed,
     defaultViewed,
     onViewedChange,
-    onSubmit,
+    onSubmit:
+      onSubmit &&
+      ((result, helpers) => {
+        const returned = onSubmit(result, helpers);
+        const total = result.accepted + result.rejected + result.pending;
+        setSent({
+          text: T.submitted(result.accepted, total, result.comments.length),
+          after: latest.current.announcement,
+        });
+        return returned;
+      }),
     readOnly,
     context,
     maxEditLength,
@@ -412,7 +424,7 @@ export function DiffReview({
               <ToggleGroup.Item
                 key={mode}
                 value={mode}
-                className="text-signoff-fg-muted hover:text-signoff-fg focus-visible:outline-signoff-ring data-[state=on]:bg-signoff-surface-2 data-[state=on]:text-signoff-fg cursor-pointer rounded-md px-2.5 py-1 text-xs font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 data-[state=on]:shadow-[inset_0_0_0_1px_var(--signoff-border-strong)]"
+                className="text-signoff-fg-muted hover:text-signoff-fg focus-visible:outline-signoff-ring data-[state=on]:bg-signoff-surface-2 data-[state=on]:text-signoff-fg cursor-pointer rounded-md px-2.5 py-1 text-xs font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 data-[state=on]:shadow-[inset_0_0_0_1px_var(--signoff-border-strong)] forced-colors:data-[state=on]:underline forced-colors:data-[state=on]:decoration-2 forced-colors:data-[state=on]:underline-offset-4"
               >
                 {T.views[mode]}
               </ToggleGroup.Item>
@@ -539,7 +551,7 @@ export function DiffReview({
               </div>
             </div>
             <p
-              className="text-signoff-fg-subtle hidden flex-wrap items-center gap-1 text-[11px] lg:flex"
+              className="text-signoff-fg-subtle hidden flex-wrap items-center gap-1 text-[11px] lg:flex pointer-coarse:hidden"
               aria-hidden="true"
             >
               <Kbd>J</Kbd>
@@ -581,7 +593,7 @@ export function DiffReview({
                 <button
                   data-slot="signoff-diff-submit"
                   {...review.getSubmitProps()}
-                  className="bg-signoff-accent text-signoff-on-accent hover:bg-signoff-accent/90 focus-visible:outline-signoff-ring inline-flex h-8 cursor-pointer items-center rounded-lg px-3 text-[13px] font-semibold whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 aria-disabled:cursor-not-allowed aria-disabled:opacity-60"
+                  className="bg-signoff-accent text-signoff-on-accent hover:bg-signoff-accent/90 focus-visible:outline-signoff-ring inline-flex h-8 cursor-pointer items-center rounded-lg px-3 text-[13px] font-semibold whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 aria-disabled:cursor-not-allowed aria-disabled:opacity-60 forced-colors:border"
                 >
                   {label}
                 </button>
@@ -589,7 +601,7 @@ export function DiffReview({
             </div>
           </div>
         )}
-        <LiveRegion>{review.announcement}</LiveRegion>
+        <LiveRegion>{sent?.after === review.announcement ? sent.text : review.announcement}</LiveRegion>
       </section>
     </WithLabels>
   );
@@ -618,11 +630,14 @@ const secondaryButton =
 const smallButton =
   'inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-md border px-2 text-xs font-medium whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-signoff-ring';
 
+/** A pressed toggle in forced colours, which replace the tint that shows it: a thicker border. */
+const pressed = 'forced-colors:aria-pressed:border-2';
+
 function PathLabel({ path, oldPath }: { path: string; oldPath?: string | undefined }) {
   const T = useLabels(LABELS).diffReview;
   const slash = path.lastIndexOf('/');
   return (
-    <span className="min-w-0 truncate">
+    <span dir="ltr" className="min-w-0 truncate">
       {oldPath && oldPath !== path && (
         <>
           <span className="text-signoff-fg-subtle">
@@ -864,6 +879,7 @@ function DecisionButtons({
         onClick={() => actions.decide(id, rejected ? 'pending' : 'rejected')}
         className={cn(
           smallButton,
+          pressed,
           rejected
             ? 'border-signoff-hot/60 bg-signoff-hot/15 text-signoff-hot-fg'
             : 'border-signoff-border text-signoff-fg-muted hover:border-signoff-hot/50 hover:text-signoff-hot-fg',
@@ -880,6 +896,7 @@ function DecisionButtons({
         onClick={() => actions.decide(id, accepted ? 'pending' : 'accepted')}
         className={cn(
           smallButton,
+          pressed,
           accepted
             ? 'border-signoff-accent/60 bg-signoff-accent/15 text-signoff-accent-fg'
             : 'border-signoff-border text-signoff-fg-muted hover:border-signoff-accent/50 hover:text-signoff-accent-fg',
@@ -1085,10 +1102,11 @@ const Hunk = memo(function Hunk({
       onFocus={() => actions.activate(index)}
       className={itemClass(decision)}
     >
-      {/* Under 30rem, the decision badge goes under the range rather than beside it, so the range keeps its room. */}
-      <div className="bg-signoff-bg/35 @container flex min-h-9 items-center gap-2 py-1 pr-2 pl-4">
+      {/* Under 30rem, the decision badge goes under the range rather than beside it, so the range keeps its room;
+          where the buttons leave it too little, they wrap to a line of their own rather than cut it short. */}
+      <div className="bg-signoff-bg/35 @container flex min-h-9 flex-wrap items-center gap-2 py-1 pr-2 pl-4">
         <span className="flex min-w-0 items-center gap-2 @max-[30rem]:flex-col @max-[30rem]:items-start @max-[30rem]:gap-0.5">
-          <span className="font-signoff-mono text-signoff-fg-subtle max-w-full min-w-0 truncate text-[11px]">
+          <span dir="ltr" className="font-signoff-mono text-signoff-fg-subtle max-w-full min-w-0 truncate text-[11px]">
             {hunk.header}
           </span>
           <DecisionBadge decision={decision} />
@@ -1106,6 +1124,8 @@ const Hunk = memo(function Hunk({
       {/* Long lines scroll sideways, or wrap under 30rem; while they scroll, the code is a named group the keyboard can reach. */}
       <div
         ref={codeRef}
+        // Code reads left to right in a right-to-left page too, so bidi cannot reorder it.
+        dir="ltr"
         className="focus-visible:outline-signoff-ring @container overflow-x-auto focus-visible:outline-2 focus-visible:-outline-offset-2"
       >
         {view === 'unified' ? (
@@ -1201,7 +1221,9 @@ function CommentView({
             <span className="sr-only">{heading.hidden}</span>
             {heading.visible}
           </p>
-          <p className="text-signoff-fg mt-0.5 text-[13px] leading-relaxed whitespace-pre-wrap">{comment.text}</p>
+          <p dir="auto" className="text-signoff-fg mt-0.5 text-[13px] leading-relaxed whitespace-pre-wrap">
+            {comment.text}
+          </p>
         </div>
         {!readOnly && (
           <span className="flex shrink-0 items-center gap-1">
@@ -1260,6 +1282,7 @@ function CommentEditor({
       <textarea
         ref={(el) => actions.registerDraft(el)}
         id={id}
+        dir="auto"
         rows={3}
         value={draft.text}
         onChange={(event) => actions.setText(event.target.value)}
@@ -1277,7 +1300,7 @@ function CommentEditor({
           }
         }}
         placeholder={T.commentPlaceholder}
-        className="border-signoff-border-strong bg-signoff-bg text-signoff-fg placeholder:text-signoff-fg-subtle focus-visible:outline-signoff-ring w-full resize-y rounded-lg border px-3 py-2 text-[13px] focus-visible:outline-2 focus-visible:outline-offset-0"
+        className="border-signoff-border-strong bg-signoff-bg text-signoff-fg placeholder:text-signoff-fg-subtle focus-visible:outline-signoff-ring w-full resize-y rounded-lg border px-3 py-2 text-[13px] focus-visible:outline-2 focus-visible:outline-offset-0 pointer-coarse:text-[length:max(16px,1rem)]"
       />
       <div className="flex items-center justify-end gap-2">
         <button
@@ -1292,7 +1315,7 @@ function CommentEditor({
           type="button"
           onClick={() => actions.save()}
           aria-disabled={empty || undefined}
-          className="bg-signoff-accent text-signoff-on-accent hover:bg-signoff-accent/90 focus-visible:outline-signoff-ring inline-flex h-7 cursor-pointer items-center rounded-md px-2.5 text-xs font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 aria-disabled:cursor-not-allowed aria-disabled:opacity-60"
+          className="bg-signoff-accent text-signoff-on-accent hover:bg-signoff-accent/90 focus-visible:outline-signoff-ring inline-flex h-7 cursor-pointer items-center rounded-md px-2.5 text-xs font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 aria-disabled:cursor-not-allowed aria-disabled:opacity-60 forced-colors:border"
         >
           {draft.commentId ? T.saveComment : T.addComment}
         </button>
@@ -1916,7 +1939,7 @@ function ContextLines({
   if (lines.length === 0) return null;
   const Rows = view === 'unified' ? UnifiedRows : SplitRows;
   return (
-    <div className="@container overflow-x-auto">
+    <div dir="ltr" className="@container overflow-x-auto">
       <Rows
         hunk={rows}
         language={language}

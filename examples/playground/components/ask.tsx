@@ -44,17 +44,21 @@ export function Ask({ className = '' }: { className?: string }) {
         router.push(`${target.pathname}${target.search}${target.hash}`);
       }}
       trigger={
+        // Named by its words, "Ask" then "the docs" for screen readers, so the name starts with
+        // what it shows (WCAG 2.5.3); the key cap is a hint, named by aria-keyshortcuts.
         <button
           type="button"
           data-ask-trigger
-          aria-label="Ask the docs"
+          aria-keyshortcuts={apple ? 'Meta+K' : 'Control+K'}
           className={`tap-target border-line text-fg-muted hover:border-line-strong hover:text-fg focus-visible:outline-cyan-soft relative inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 text-[13px] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 md:h-8 ${className}`}
         >
           <SparkIcon className="size-4" />
-          <span className="max-md:hidden" aria-hidden="true">
-            Ask
-          </span>
-          <kbd className="border-line-strong text-fg-subtle rounded border px-1 font-mono text-[10.5px] max-md:hidden pointer-coarse:hidden">
+          <span className="max-md:sr-only">Ask</span>
+          <span className="sr-only"> the docs</span>
+          <kbd
+            aria-hidden="true"
+            className="border-line-strong text-fg-subtle rounded border px-1 font-mono text-[10.5px] max-md:hidden pointer-coarse:hidden"
+          >
             {apple ? '⌘K' : 'Ctrl K'}
           </kbd>
         </button>

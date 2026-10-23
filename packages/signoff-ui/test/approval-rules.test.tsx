@@ -44,12 +44,17 @@ describe('ApprovalCard choices', () => {
     expect(within(group).getByRole('button', { name: 'Always' })).toHaveAttribute('aria-keyshortcuts', 'A');
     expect(within(group).getByRole('button', { name: 'Deny' })).toHaveAttribute('aria-keyshortcuts', 'N');
     expect(within(group).getByRole('button', { name: /^Always deny/ })).toHaveAttribute('aria-keyshortcuts', 'Shift+N');
+    // What runs, and what S or A would remember, before the keys.
     expect(group).toHaveAccessibleDescription(
-      'Keyboard: press Y to approve, S to approve for this session, A to always approve, N to deny, Shift N to always deny, or Ctrl Enter to approve.',
+      'Runs npm test -- --watch. A lasting decision covers run_command with command npm test*. Keyboard: press Y to approve, S to approve for this session, A to always approve, N to deny, Shift N to always deny, or Ctrl Enter to approve.',
     );
     group.focus();
     await user.keyboard('s');
     expect(onDecide).toHaveBeenLastCalledWith({ decision: 'allow-session', args: { command: 'npm test*' } });
+    // The announcement names the rule it saved.
+    expect(within(group).getByRole('status')).toHaveTextContent(
+      'Approved for this session: run_command with command npm test*.',
+    );
   });
 
   it.each([
@@ -328,6 +333,89 @@ describe('ToolApprovalBatch', () => {
     expect(onRespond).not.toHaveBeenCalled();
     await user.click(screen.getByRole('button', { name: 'Confirm approve all' }));
     expect(onRespond).toHaveBeenCalledTimes(2);
+  });
+
+  /** Answers as `addToolApprovalResponse` does: the part it answers reads approval-responded. */
+  const answered = (all: ToolPart[], response: ToolApprovalResponse) =>
+    all.map((part) =>
+      part.approval?.id === response.id
+        ? ({
+            ...part,
+            state: 'approval-responded',
+            approval: { ...part.approval, approved: response.approved },
+          } as ToolPart)
+        : part,
+    );
+
+  it.each([
+    ['Approve all', '2 approvals approved.'],
+    ['Deny all', '2 approvals denied.'],
+  ])(
+    'once %s has answered them and gone, says so, and leaves focus on the first card it answered',
+    async (button, said) => {
+      const user = userEvent.setup();
+      function Run() {
+        const [current, setCurrent] = useState<ToolPart[]>([command('npm ci', 'a'), command('npm test', 'b')]);
+        const respond = (response: ToolApprovalResponse) => setCurrent((all) => answered(all, response));
+        return (
+          <>
+            <ToolApprovalBatch parts={current} onRespond={respond} />
+            {current.map((part) => (
+              <ToolApprovalCard key={part.toolCallId} part={part} onRespond={respond} />
+            ))}
+          </>
+        );
+      }
+      render(<Run />);
+      await user.click(screen.getByRole('button', { name: button }));
+      expect(screen.queryByRole('group', { name: 'Approvals waiting' })).toBeNull();
+      expect(screen.getAllByRole('status').map((s) => s.textContent)).toContain(said);
+      const [first] = screen.getAllByRole('group', { name: 'Run command' });
+      expect(first).toHaveFocus();
+      expect(first).toHaveAttribute('data-status', button === 'Approve all' ? 'approved' : 'denied');
+    },
+  );
+
+  it('does the same in an AgentMessage whose parts the answers update', async () => {
+    const user = userEvent.setup();
+    function Run() {
+      const [current, setCurrent] = useState<ToolPart[]>([command('npm ci', 'a'), command('npm test', 'b')]);
+      return (
+        <AgentMessage
+          message={assistant(current)}
+          onToolApproval={(response) => setCurrent((all) => answered(all, response))}
+        />
+      );
+    }
+    render(<Run />);
+    screen.getByRole('button', { name: 'Approve all' }).focus();
+    await user.keyboard('{Enter}');
+    expect(screen.queryByRole('group', { name: 'Approvals waiting' })).toBeNull();
+    expect(screen.getAllByRole('status').map((s) => s.textContent)).toContain('2 approvals approved.');
+    expect(document.activeElement).not.toBe(document.body);
+    expect(document.activeElement).toHaveAttribute('data-slot', 'signoff-approval-card');
+    expect(document.activeElement).toHaveAttribute('data-status', 'approved');
+  });
+
+  it('says it left a press of Approve all unconfirmed, on Escape or when focus leaves it', async () => {
+    const user = userEvent.setup();
+    render(
+      <>
+        <ToolApprovalBatch parts={parts} onRespond={vi.fn()} tools={{ run_command: { risk: 'critical' } }} />
+        <button type="button">Elsewhere</button>
+      </>,
+    );
+    const status = () => screen.getAllByRole('status').map((s) => s.textContent);
+    await user.click(screen.getByRole('button', { name: 'Approve all' }));
+    expect(status()).toContain('One of them is critical. Press Approve all again to confirm.');
+    await user.keyboard('{Escape}');
+    expect(screen.getByRole('button', { name: 'Approve all' })).toBeInTheDocument();
+    expect(status()).toContain('Confirmation cancelled.');
+    await user.click(screen.getByRole('button', { name: 'Approve all' }));
+    expect(status()).toContain('One of them is critical. Press Approve all again to confirm.');
+    await user.click(screen.getByRole('button', { name: 'Elsewhere' }));
+    expect(screen.getByRole('button', { name: 'Approve all' })).toBeInTheDocument();
+    expect(status()).toContain('Confirmation cancelled.');
   });
 
   it('shows from two waiting approvals, leaving out those a rule decides, and records them', async () => {

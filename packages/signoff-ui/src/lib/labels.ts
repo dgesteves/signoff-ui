@@ -129,8 +129,23 @@ export interface SignoffLabels {
     reasonPlaceholder: string;
     approveHint: string;
     keyboardHint: (offered: OfferedChoices, mod: string) => string;
+    /**
+     * What a pending card says after its reason, for screen readers: the risk, what will run (the
+     * arguments' `command` and `cwd`, or else their first names and values), and the calls a
+     * lasting decision covers, as `describeRule` words them. Each is `undefined` or empty when the
+     * card has none.
+     */
+    summary: (card: {
+      risk: string | undefined;
+      command: string | undefined;
+      cwd: string | undefined;
+      args: readonly (readonly [name: string, value: string])[];
+      rule: string | undefined;
+    }) => string;
     /** What a resolved card says of a person's decision. */
     resolved: Record<ApprovalDecision, string>;
+    /** A lasting decision, announced with the calls its rule covers: `resolved`'s text and `describeRule`'s. */
+    resolvedFor: (resolved: string, rule: string) => string;
     approved: string;
     denied: string;
     autoApproved: string;
@@ -140,6 +155,8 @@ export interface SignoffLabels {
     /** A rule in words: "run_command with command npm test*". */
     describeRule: (rule: RuleLabel) => string;
     critical: string;
+    /** Announced when a critical action's first press is let go: Escape, or focus going elsewhere. */
+    confirmCancelled: string;
     invalidJson: string;
     editArguments: string;
     doneEditing: string;
@@ -238,6 +255,8 @@ export interface SignoffLabels {
     comparingFiles: string;
     skipped: string;
     apply: (accepted: number, total: number) => string;
+    /** Announced when the review is sent: items accepted of all, and the comments sent with them. */
+    submitted: (accepted: number, total: number, comments: number) => string;
     acceptAll: string;
     rejectAll: string;
     keyHints: { move: string; accept: string; reject: string; comment: string; apply: string };
@@ -405,6 +424,16 @@ export const approvalCardLabels: SignoffLabels['approvalCard'] = {
     ]
       .filter(Boolean)
       .join(', ')}, or ${mod} Enter to approve.`,
+  summary: ({ risk, command, cwd, args, rule }) =>
+    [
+      risk && `${risk}.`,
+      command !== undefined
+        ? `Runs ${command}${cwd ? ` in ${cwd}` : ''}.`
+        : args.length > 0 && `Arguments: ${args.map((arg) => arg.join(' ')).join(', ')}.`,
+      rule && `A lasting decision covers ${rule}.`,
+    ]
+      .filter(Boolean)
+      .join(' '),
   resolved: {
     'allow-once': 'Approved',
     'allow-session': 'Approved for this session',
@@ -412,6 +441,7 @@ export const approvalCardLabels: SignoffLabels['approvalCard'] = {
     'deny-once': 'Denied',
     'deny-always': 'Always denied',
   },
+  resolvedFor: (resolved, rule) => `${resolved}: ${rule}.`,
   approved: 'Approved',
   denied: 'Denied',
   autoApproved: 'Auto-approved',
@@ -426,6 +456,7 @@ export const approvalCardLabels: SignoffLabels['approvalCard'] = {
       : `${tool} with ${args.map(([name, pattern]) => `${name} ${pattern}`).join(', ')}`;
   },
   critical: 'Critical action. Press approve again to confirm.',
+  confirmCancelled: 'Confirmation cancelled.',
   invalidJson: 'The arguments are not valid JSON.',
   editArguments: 'Edit arguments',
   doneEditing: 'Done editing',
@@ -535,9 +566,15 @@ export const diffReviewLabels: SignoffLabels['diffReview'] = {
   commentUpdated: 'Comment updated.',
   commentDeleted: 'Comment deleted.',
   unchangedLines: (count) => `${count} unchanged ${plural(count, 'line')}`,
-  moreAfter: (count, hunk) => ({ visible: `${count} more`, hidden: ` unchanged lines after hunk ${hunk}` }),
-  moreBefore: (count, hunk) => ({ visible: `${count} more`, hidden: ` unchanged lines before hunk ${hunk}` }),
-  showAll: (count) => ({ visible: 'Show all', hidden: ` ${count} unchanged lines` }),
+  moreAfter: (count, hunk) => ({
+    visible: `${count} more`,
+    hidden: ` unchanged ${plural(count, 'line')} after hunk ${hunk}`,
+  }),
+  moreBefore: (count, hunk) => ({
+    visible: `${count} more`,
+    hidden: ` unchanged ${plural(count, 'line')} before hunk ${hunk}`,
+  }),
+  showAll: (count) => ({ visible: 'Show all', hidden: ` ${count} unchanged ${plural(count, 'line')}` }),
   expanded: (count) => `Showing ${count} more unchanged ${plural(count, 'line')}.`,
   reviewed: 'reviewed',
   filesViewed: (viewed, total) => `${viewed} of ${total} files viewed`,
@@ -545,6 +582,8 @@ export const diffReviewLabels: SignoffLabels['diffReview'] = {
   comparingFiles: 'comparing files…',
   skipped: 'unreviewed hunks are skipped',
   apply: (accepted, total) => (accepted > 0 ? `Apply ${accepted} of ${total}` : 'Apply changes'),
+  submitted: (accepted, total, comments) =>
+    `Review sent: ${accepted} of ${total} accepted${comments > 0 ? `, ${comments} ${plural(comments, 'comment')}` : ''}.`,
   acceptAll: 'Accept all',
   rejectAll: 'Reject all',
   keyHints: { move: 'move', accept: 'accept', reject: 'reject', comment: 'comment', apply: 'apply' },

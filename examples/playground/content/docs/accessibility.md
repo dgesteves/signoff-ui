@@ -6,7 +6,7 @@ Every action is a real button. Single-key shortcuts (Y and N on an approval card
 
 ## Focus is managed
 
-Deciding on an approval card moves focus to the card instead of dropping it on `<body>`. A component that leaves the page takes focus with it: `ToolApprovalBatch` once it has answered its calls, or a card or a review your app removes after a decision. Move focus to what replaces it, such as the next card or the agent's reply. In a review, the hunks share one tab stop, a roving tabindex that J, K and the arrow keys move through, and the file list is one more; each hunk's buttons and each file's controls are in the Tab order too. Writing a comment moves focus to its text area and back to the hunk when it closes. Tool calls follow the disclosure pattern with arrow-key movement. In a run of more than 150 calls, the timeline renders those near the screen; the arrow keys, Home and End still move between all of them, scrolling one that isn't rendered into view, and each call that renders gives its place in the whole list.
+Deciding on an approval card moves focus to the card instead of dropping it on `<body>`. `ToolApprovalBatch` leaves the page once its answers reach the parts: it moves focus to the first card it answered, and still announces what it did ("2 approvals approved."). A card or a review your app removes after a decision takes focus with it: move focus to what replaces it, such as the next card or the agent's reply. In a review, the hunks share one tab stop, a roving tabindex that J, K and the arrow keys move through, and the file list is one more; each hunk's buttons and each file's controls are in the Tab order too. Writing a comment moves focus to its text area and back to the hunk when it closes. Tool calls follow the disclosure pattern with arrow-key movement. In a run of more than 150 calls, the timeline renders those near the screen; the arrow keys, Home and End still move between all of them, scrolling one that isn't rendered into view, and each call that renders gives its place in the whole list.
 
 ## Scrolling content is reachable
 
@@ -16,9 +16,21 @@ Code blocks, tables, diff hunks and the compact run meter scroll sideways when t
 
 Tool completions and failures (calls that settle together, such as parallel calls, in one announcement), approval decisions, review progress ("Hunk 2 of 4 accepted. 2 remaining.") and agent state changes go through live regions. State announcements are debounced, and only approvals and errors are assertive.
 
+A focused approval card reads its title, its reason, then what a sighted person sees around the buttons: the risk, what will run ("Runs pnpm add zod in ~/app."), and the calls a decision for the session or always would remember ("A lasting decision covers run_command with command pnpm add\*."), before its keys. A lasting decision is announced with the rule it saved ("Approved for this session: run_command with command pnpm add\*."). A critical action's first press that is let go, by Escape or by focus leaving, says "Confirmation cancelled." rather than the button quietly reading Approve again. Applying a review says what was sent ("Review sent: 3 of 4 accepted, 1 comment.").
+
 ## Not color alone
 
 Every state has an icon and text, diff lines keep their + and − glyphs plus "Added:" and "Removed:" for screen readers, and risk levels are spelled out.
+
+In forced colours (Windows contrast themes), which replace backgrounds and drop shadows, the primary buttons (Approve, Approve all, Apply) keep a border, a pressed Accept or Reject a thicker one, the layout picked is underlined, and focus rings, risk badges and the diff's + and − still show.
+
+## Touch screens
+
+On a touch screen (`pointer: coarse`), every text field is 16px or more: the denial reason, the arguments being edited, the rule's patterns and review comments. iOS zooms the page into a smaller field when it takes focus. The key caps and the key hints are hidden there, since there are no keys to press; the buttons are the same.
+
+## Right to left
+
+In a right-to-left page, code and what runs stay left to right, so the bidi algorithm cannot reorder them: commands and their directory, JSON, rule patterns, diff lines, hunk ranges and file paths. A comment, or an argument being edited, takes the direction of its own text. The rest of the layout is not mirrored yet.
 
 ## In the reader's language
 
@@ -40,4 +52,4 @@ Titles take a `headingLevel`; source lists are labeled lists and approval cards 
 
 ## How it's tested
 
-Every component has axe checks in Vitest (jsdom). `pnpm a11y` also runs axe in Chrome against the playground at each stage of a run, the components page, the docs and a phone viewport, in the dark and light themes, which covers color contrast with real layout. CI runs both on every pull request, and a violation in either fails it.
+Every component has axe checks in Vitest (jsdom). `pnpm a11y` also runs axe in Chrome against the playground at each stage of a run, the components page, the docs and a phone viewport, in the dark and light themes, which covers color contrast with real layout. It then checks what axe cannot see: focus rings, borders and the diff's markers in forced colours, code left to right in a right-to-left page, and 16px fields with no key caps on a touch screen. CI runs both on every pull request, `pnpm a11y` in Chrome and in WebKit, and a violation in either fails it.

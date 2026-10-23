@@ -106,6 +106,16 @@ export const pt: SignoffLabels = {
       ]
         .filter(Boolean)
         .join(', ')}, ou ${mod} Enter para aprovar.`,
+    summary: ({ risk, command, cwd, args, rule }) =>
+      [
+        risk && `${risk}.`,
+        command !== undefined
+          ? `Executa ${command}${cwd ? ` em ${cwd}` : ''}.`
+          : args.length > 0 && `Argumentos: ${args.map((arg) => arg.join(' ')).join(', ')}.`,
+        rule && `Uma decisão duradoura abrange ${rule}.`,
+      ]
+        .filter(Boolean)
+        .join(' '),
     resolved: {
       'allow-once': 'Aprovado',
       'allow-session': 'Aprovado nesta sessão',
@@ -113,6 +123,7 @@ export const pt: SignoffLabels = {
       'deny-once': 'Recusado',
       'deny-always': 'Recusado sempre',
     },
+    resolvedFor: (resolved, rule) => `${resolved}: ${rule}.`,
     approved: 'Aprovado',
     denied: 'Recusado',
     autoApproved: 'Aprovado automaticamente',
@@ -127,6 +138,7 @@ export const pt: SignoffLabels = {
         : `${tool} com ${args.map(([name, pattern]) => `${name} ${pattern}`).join(', ')}`;
     },
     critical: 'Ação crítica. Prima aprovar outra vez para confirmar.',
+    confirmCancelled: 'Confirmação cancelada.',
     invalidJson: 'Os argumentos não são JSON válido.',
     editArguments: 'Editar argumentos',
     doneEditing: 'Concluir edição',
@@ -257,9 +269,18 @@ export const pt: SignoffLabels = {
     commentUpdated: 'Comentário atualizado.',
     commentDeleted: 'Comentário eliminado.',
     unchangedLines: (count) => `${count} ${plural(count, 'linha inalterada', 'linhas inalteradas')}`,
-    moreAfter: (count, hunk) => ({ visible: `mais ${count}`, hidden: ` linhas inalteradas depois do bloco ${hunk}` }),
-    moreBefore: (count, hunk) => ({ visible: `mais ${count}`, hidden: ` linhas inalteradas antes do bloco ${hunk}` }),
-    showAll: (count) => ({ visible: 'Mostrar todas', hidden: ` as ${count} linhas inalteradas` }),
+    moreAfter: (count, hunk) => ({
+      visible: `mais ${count}`,
+      hidden: ` ${plural(count, 'linha inalterada', 'linhas inalteradas')} depois do bloco ${hunk}`,
+    }),
+    moreBefore: (count, hunk) => ({
+      visible: `mais ${count}`,
+      hidden: ` ${plural(count, 'linha inalterada', 'linhas inalteradas')} antes do bloco ${hunk}`,
+    }),
+    showAll: (count) => ({
+      visible: 'Mostrar todas',
+      hidden: count === 1 ? ' a linha inalterada' : ` as ${count} linhas inalteradas`,
+    }),
     expanded: (count) => `A mostrar mais ${count} ${plural(count, 'linha inalterada', 'linhas inalteradas')}.`,
     reviewed: 'revistos',
     filesViewed: (viewed, total) => `${viewed} de ${total} ficheiros vistos`,
@@ -267,6 +288,10 @@ export const pt: SignoffLabels = {
     comparingFiles: 'a comparar ficheiros…',
     skipped: 'os blocos por rever ficam de fora',
     apply: (accepted, total) => (accepted > 0 ? `Aplicar ${accepted} de ${total}` : 'Aplicar alterações'),
+    submitted: (accepted, total, comments) =>
+      `Revisão enviada: ${accepted} de ${total} ${plural(accepted, 'aceite', 'aceites')}${
+        comments > 0 ? `, ${comments} ${plural(comments, 'comentário', 'comentários')}` : ''
+      }.`,
     acceptAll: 'Aceitar tudo',
     rejectAll: 'Rejeitar tudo',
     keyHints: { move: 'mover', accept: 'aceitar', reject: 'rejeitar', comment: 'comentar', apply: 'aplicar' },

@@ -120,10 +120,11 @@ describe('Comparison', () => {
 describe('Accessibility: focus', () => {
   const focus = section(accessibility, 'Focus is managed');
 
-  it("doesn't promise focus is never lost: ToolApprovalBatch leaves the page once it has answered", () => {
+  it("doesn't promise focus is never lost, and says where ToolApprovalBatch moves it as it leaves", () => {
     expect(focus).not.toBe('');
     expect(accessibility).not.toMatch(/never lost/i);
-    expect(focus).toMatch(/`ToolApprovalBatch`[^.]*takes focus with it|takes focus with it[^.]*`ToolApprovalBatch`/);
+    expect(focus).toMatch(/`ToolApprovalBatch` leaves the page[^.]*: it moves focus to the first card it answered/);
+    expect(focus).toMatch(/your app removes after a decision takes focus with it/);
   });
 
   it("doesn't call the review one tab stop: each hunk's buttons and each file's controls are in the Tab order", () => {
