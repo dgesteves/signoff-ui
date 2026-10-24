@@ -67,7 +67,7 @@ export function Sources({
       data-signoff
       data-slot="signoff-sources"
       data-variant={variant}
-      className={cn('font-signoff-sans text-signoff-fg', className)}
+      className={cn('font-signoff-sans text-signoff-fg @container', className)}
       {...props}
     >
       {label !== null && (
@@ -78,7 +78,7 @@ export function Sources({
       {/* A labelled list rather than a nav landmark: a conversation can hold many source lists. */}
       <ol
         aria-label={name}
-        className={cn(variant === 'chips' ? 'flex flex-wrap gap-1.5' : 'grid grid-cols-1 gap-2 sm:grid-cols-2')}
+        className={cn(variant === 'chips' ? 'flex flex-wrap gap-1.5' : 'grid grid-cols-1 gap-2 @lg:grid-cols-2')}
       >
         {items.map((item, i) => {
           const n = i + 1;
@@ -94,7 +94,7 @@ export function Sources({
                 </span>
                 <Monogram item={item} />
                 <span className="text-signoff-fg max-w-[16rem] truncate">{title}</span>
-                {item.title && item.url && <span className="text-signoff-fg-subtle hidden sm:inline">{host}</span>}
+                {item.title && item.url && <span className="text-signoff-fg-subtle hidden @lg:inline">{host}</span>}
               </>
             ) : (
               <>
