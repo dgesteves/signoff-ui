@@ -368,6 +368,7 @@ export const pt: SignoffLabels = {
     image: 'Imagem:',
     imageFallback: 'imagem',
     citation: (n) => `Fonte ${n}`,
+    task: 'Tarefa',
   },
   reasoning: {
     thinking: 'A pensar',

@@ -293,4 +293,20 @@ describe('Markdown', () => {
     );
     expect(await axe(container)).toHaveNoViolations();
   });
+
+  it('names the checkboxes of a task list, which read with their state', async () => {
+    const { container } = render(<Markdown>{'- [x] Read the route\n- [ ] Add the rate limit\n- plain item'}</Markdown>);
+    const boxes = screen.getAllByRole('checkbox', { name: 'Task' });
+    expect(boxes).toHaveLength(2);
+    expect(boxes[0]).toBeChecked();
+    expect(boxes[1]).not.toBeChecked();
+    // Still a record of the agent's plan, not a control.
+    for (const box of boxes) expect(box).toBeDisabled();
+    expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it('takes the task name from the labels', () => {
+    render(<Markdown labels={{ markdown: { task: 'Tarefa' } }}>{'- [ ] Rever'}</Markdown>);
+    expect(screen.getByRole('checkbox', { name: 'Tarefa' })).toBeInTheDocument();
+  });
 });

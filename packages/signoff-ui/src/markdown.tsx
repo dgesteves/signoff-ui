@@ -369,6 +369,15 @@ function normalizeLanguage(lang: string) {
   return map[lang] ?? lang;
 }
 
+/**
+ * A task list's checkbox (`- [x] done`), which GFM renders as a disabled checkbox with no name:
+ * named here (`labels.markdown.task`), and read with its state, checked or not.
+ */
+function TaskCheckbox(props: ComponentPropsWithoutRef<'input'>) {
+  const L = useLabels(LABELS);
+  return <input {...props} aria-label={props.type === 'checkbox' ? L.markdown.task : undefined} />;
+}
+
 /** react-markdown hands every component the element's syntax tree `node`, which must not reach the DOM. */
 function omitNode<P extends { node?: unknown }>(props: P): Omit<P, 'node'> {
   const rest = { ...props };
@@ -420,6 +429,7 @@ const components: Components = {
     />
   ),
   li: ({ className, ...props }) => <li className={cn('pl-1', className)} {...omitNode(props)} />,
+  input: (props) => <TaskCheckbox {...omitNode(props)} />,
   blockquote: ({ className, ...props }) => (
     <blockquote
       className={cn('border-signoff-border-strong text-signoff-fg-muted my-3 border-l-2 pl-3', className)}

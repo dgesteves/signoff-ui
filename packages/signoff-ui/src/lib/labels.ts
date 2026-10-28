@@ -271,6 +271,8 @@ export interface SignoffLabels {
     image: string;
     imageFallback: string;
     citation: (n: number | string) => string;
+    /** The name of a task list's checkbox (`- [x] done`), read with its state. */
+    task: string;
   };
   reasoning: {
     thinking: string;
@@ -599,6 +601,7 @@ export const markdownLabels: SignoffLabels['markdown'] = {
   image: 'Image:',
   imageFallback: 'image',
   citation: (n) => `Source ${n}`,
+  task: 'Task',
 };
 
 export const reasoningLabels: SignoffLabels['reasoning'] = {

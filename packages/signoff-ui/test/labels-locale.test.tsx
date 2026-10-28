@@ -397,7 +397,7 @@ describe('labels: every word comes from them', () => {
       parts: [
         {
           type: 'text',
-          text: 'Ответ [1], [пример.рф](https://127.0.0.2/б).\n\n| а | б |\n|---|---|\n| в | г |\n\n```\nкод\n```\n\n![картинка](https://127.0.0.1/a.png) ![](https://127.0.0.1/b.png)',
+          text: 'Ответ [1], [пример.рф](https://127.0.0.2/б).\n\n| а | б |\n|---|---|\n| в | г |\n\n```\nкод\n```\n\n- [x] сделано\n- [ ] потом\n\n![картинка](https://127.0.0.1/a.png) ![](https://127.0.0.1/b.png)',
         },
         { type: 'file', mediaType: 'image/png', url: 'data:image/png;base64,iVBORw0KGgo=' },
         { type: 'file', mediaType: 'image/png', url: 'https://127.0.0.1/c.png', filename: 'снимок' },
