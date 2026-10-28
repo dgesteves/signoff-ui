@@ -72,13 +72,21 @@ export interface UseAgUiAgentResult {
    */
   editInput: (toolCallId: string, input: unknown) => void;
   /**
-   * Abort the run in progress. It ends like a cancelled run: what was streaming stays cut off, which
-   * `deriveAgentState` reads as `stopped`.
+   * Abort the run in progress. It ends like a cancelled run, with no `error`, also when the server
+   * has not answered yet: what was streaming stays cut off, which `deriveAgentState` reads as `stopped`.
    */
   stop: () => void;
 }
 
 const CANCELLED = { type: 'RUN_FINISHED', outcome: { type: 'cancelled' } };
+
+/**
+ * Whether a run failed because it was aborted, as `stop()` aborts it (`abortRun()`): the request's
+ * `AbortError`. Before the server's first response, no `RUN_ERROR` with code `abort` comes, as it
+ * does mid-stream: `@ag-ui/client` calls `onRunFailed` with the abort, then ends the run without
+ * throwing.
+ */
+const isAbort = (error: Error | undefined) => error?.name === 'AbortError';
 
 const useIsoLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect;
 
@@ -120,6 +128,8 @@ function createStore(agent: AgUiAgentLike) {
             set({ messages: [...messages] });
           },
           onRunFailed: ({ error }) => {
+            // Stopped, not failed: what was streaming stays cut off, as for a cancelled run.
+            if (isAbort(error)) return update((run) => reduceAgUiRun(run, CANCELLED));
             update((run) => ({
               ...reduceAgUiRun(run, { type: 'RUN_ERROR' }),
               error: { message: error.message || 'Run failed' },

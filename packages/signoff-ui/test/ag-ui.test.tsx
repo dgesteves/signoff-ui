@@ -1065,6 +1065,47 @@ describe('useAgUiAgent', () => {
     expect(deriveAgentState({ status: result.current.status, message: last })).toEqual({ state: 'stopped' });
   });
 
+  it('ends a run stopped before the server answered with no error, not as failed', async () => {
+    // A real HttpAgent whose request is still waiting for its response: no event has arrived, so
+    // the abort reaches onRunFailed rather than a RUN_ERROR with code `abort`.
+    const agent = new HttpAgent({
+      url: 'https://agent.test/run',
+      fetch: (_url, init) =>
+        new Promise<Response>((_resolve, reject) => {
+          init.signal?.addEventListener('abort', () =>
+            reject(new DOMException('The operation was aborted.', 'AbortError')),
+          );
+        }),
+    });
+    agent.addMessage({ id: 'u1', role: 'user', content: 'Add zod' });
+    const { result } = renderHook(() => useAgUiAgent(agent));
+    let running: Promise<unknown> = Promise.resolve();
+    act(() => {
+      running = agent.runAgent();
+    });
+    await waitFor(() => expect(result.current.status).toBe('submitted'));
+    await act(async () => {
+      result.current.stop();
+      // The client ends an aborted run without throwing.
+      await expect(running).resolves.toBeDefined();
+    });
+    expect(result.current).toMatchObject({ status: 'ready', error: undefined });
+    const last = result.current.messages.findLast((m) => m.role === 'assistant');
+    expect(last).toBeUndefined();
+    expect(deriveAgentState({ status: result.current.status, message: last })).toEqual({ state: 'idle' });
+  });
+
+  it('still reports a request that fails before the server answered', async () => {
+    const agent = new HttpAgent({
+      url: 'https://agent.test/run',
+      fetch: () => Promise.reject(new TypeError('Failed to fetch')),
+    });
+    agent.addMessage({ id: 'u1', role: 'user', content: 'Add zod' });
+    const { result } = renderHook(() => useAgUiAgent(agent));
+    await act(() => agent.runAgent().catch(() => undefined));
+    expect(result.current).toMatchObject({ status: 'error', error: { message: 'Failed to fetch' } });
+  });
+
   it('reports a failed run', async () => {
     const agent = new ScriptedAgent([
       ({ runId }) => [
