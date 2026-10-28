@@ -172,15 +172,19 @@ type Part = UIMessage['parts'][number];
 
 /**
  * The turn as an assistant `UIMessage`: text and reasoning parts, and a dynamic tool part per call.
+ * The last text or reasoning part is `streaming` while the turn runs, and stays so once it is
+ * cancelled (`stopReason: 'cancelled'`), cut off.
  * A call waiting on its permission request is `approval-requested`, with the tool call id as the
  * approval id; one denied (or whose request was cancelled) is `output-denied`. The tool's name is
  * its `name`, else its `kind`, else its `title`; the title is the part's `title`.
  */
 export function toAcpMessage(turn: AcpTurn, id = 'acp-turn'): UIMessage {
-  const live = turn.status === 'submitted' || turn.status === 'streaming';
+  // The text or reasoning the turn is writing, or was writing when it was cancelled: that stays cut
+  // off, as a stopped run's does, so `deriveAgentState` reads `stopped` rather than `done`.
+  const open = turn.status === 'submitted' || turn.status === 'streaming' || turn.stopReason === 'cancelled';
   const parts = turn.items.map((item, index): Part => {
     if (item.type !== 'tool') {
-      const state = live && index === turn.items.length - 1 ? 'streaming' : 'done';
+      const state = open && index === turn.items.length - 1 ? 'streaming' : 'done';
       return { type: item.type, text: item.text, state };
     }
     return toolPart(turn.toolCalls[item.toolCallId]!, turn.permissions[item.toolCallId]);

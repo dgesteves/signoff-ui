@@ -347,6 +347,36 @@ describe('the end of a turn', () => {
     });
   });
 
+  it('leaves the text it was writing cut off when the turn is cancelled, so the run reads as stopped', () => {
+    const writing = play(chunk('agent_message_chunk', 'I will refactor the'));
+    const cancelled = endAcpTurn(writing, { stopReason: 'cancelled' });
+    const message = toAcpMessage(cancelled);
+    expect(message.parts).toEqual([{ type: 'text', text: 'I will refactor the', state: 'streaming' }]);
+    expect(deriveAgentState({ status: cancelled.status, message })).toEqual({ state: 'stopped' });
+    // The same for a thought cut off.
+    const thinking = endAcpTurn(play(chunk('agent_thought_chunk', 'First the')), { stopReason: 'cancelled' });
+    expect(toAcpMessage(thinking).parts).toEqual([{ type: 'reasoning', text: 'First the', state: 'streaming' }]);
+    // A turn that ended on its own is done, however it ended.
+    for (const stopReason of ['end_turn', 'max_tokens', 'refusal']) {
+      const ended = endAcpTurn(writing, { stopReason });
+      const done = toAcpMessage(ended);
+      expect(done.parts).toEqual([{ type: 'text', text: 'I will refactor the', state: 'done' }]);
+      expect(deriveAgentState({ status: ended.status, message: done })).toEqual({ state: 'done' });
+    }
+    // Text before a call is finished, cancelled or not: only the last part can be cut off.
+    const before = endAcpTurn(
+      play(chunk('agent_message_chunk', 'Running the tests.'), {
+        sessionUpdate: 'tool_call',
+        toolCallId: 't1',
+        title: 'pnpm test',
+        kind: 'execute',
+        status: 'completed',
+      }),
+      { stopReason: 'cancelled' },
+    );
+    expect(toAcpMessage(before).parts[0]).toEqual({ type: 'text', text: 'Running the tests.', state: 'done' });
+  });
+
   it('renders in AgentMessage, with a call left running read as stopped once the turn is cancelled', () => {
     const turn = endAcpTurn(
       play(chunk('agent_message_chunk', 'Running the tests.'), {

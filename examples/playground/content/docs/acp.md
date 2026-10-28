@@ -162,6 +162,7 @@ When the agent sends one `allow_always` option, Always answers it, whatever it g
 | `session/request_permission` (`requestAcpPermission`) | `approval-requested`, the tool call id as the approval id                                                     |
 | `answerAcpPermission(turn, id, decision)`             | `approval-responded` (then the output, approval kept), or `output-denied`, also when the request was canceled |
 | `session/prompt` returns (`endAcpTurn`)               | `status: 'ready'` and its `stopReason`, or `'error'`: a call left running then reads as stopped               |
+| `endAcpTurn` with `stopReason: 'cancelled'`           | the text or reasoning it was writing stays `streaming`, cut off, so the run reads as stopped                  |
 | `diff` content (`fromAcpDiffs`)                       | `DiffReview` files, paths relative to `root` (the session's `cwd`), a diff with no `oldText` a new file       |
 
 User message chunks, plans, available commands, mode, config and usage updates are left out of the message. `toAcpDiffs` goes the other way, from files to diff content.
