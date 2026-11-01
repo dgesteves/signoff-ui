@@ -16,6 +16,10 @@ overrides:
 # release fixes them within the range the packages that bring them ask for. Remove one once a release does.
 auditConfig:
   ignoreGhsas:
+    # minimatch (moderate): denial of service via globparts amplification, fixed only in minimatch 11.0.1.
+    # Dev-only: eslint-plugin-jsx-a11y's eslint asks for minimatch ^3, which has no fixed release, and the
+    # published package never loads it. Remove this when eslint moves to minimatch 11.
+    - GHSA-g3hv-75wg-m249
     # zod (high): memory exhaustion validating oversized constrained collections, fixed only in zod 4.6.6. The
     # published signoff-ui package doesn't depend on zod, the registry items reach it only as ai's peer (the app's
     # own zod), and the examples that use zod ask for ^4.6.7. zod 3 comes only through @ag-ui/client and
