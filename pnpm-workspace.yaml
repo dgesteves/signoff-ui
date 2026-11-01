@@ -4,6 +4,9 @@ packages:
 # The examples ask for the published package (`^<version>`, which `pnpm version-packages` moves with each
 # release), so they also run copied out of the repository; in the workspace they build against the local source.
 overrides:
+  # High: follow-redirects 1.16.0-1.16.1 drop cross-realm sensitiveHeaders on redirect (fixed in 1.16.2),
+  # through examples/copilotkit (@copilotkit/runtime > @slack/bolt > @slack/web-api > axios).
+  'follow-redirects@<1.16.2': ^1.16.2
   'signoff-ui': 'workspace:*'
   # @copilotkit/runtime (examples/copilotkit) reaches @ai-sdk/provider-utils 3, which asks for undici ^5.29.0.
   # undici 5 has advisories fixed only in 6.28.1 and later. provider-utils 3 uses undici's Agent and fetch,
