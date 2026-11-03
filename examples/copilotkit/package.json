@@ -11,7 +11,7 @@
   "dependencies": {
     "@ag-ui/client": "1.0.2",
     "@copilotkit/react-core": "1.82.0",
-    "@copilotkit/runtime": "1.82.0",
+    "@copilotkit/runtime": "1.83.0",
     "ai": "^7.0.153",
     "next": "^16.4.3",
     "react": "^19.3.1",
