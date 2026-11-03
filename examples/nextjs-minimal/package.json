@@ -9,9 +9,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@ai-sdk/react": "^4.0.157",
+    "@ai-sdk/react": "^4.0.163",
     "signoff-ui": "^0.14.0",
-    "ai": "^7.0.153",
+    "ai": "^7.0.159",
     "next": "^16.4.3",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
