@@ -453,8 +453,8 @@ importers:
         specifier: ^16.4.3
         version: 16.4.3(@babel/core@7.29.7(supports-color@7.2.0))(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       ondocs:
-        specifier: ^0.10.0
-        version: 0.10.0(@ai-sdk/openai@4.0.102(zod@4.6.7))(@radix-ui/react-dialog@1.2.0(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(ai@7.0.153(zod@4.6.7))(cmdk@1.1.1(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+        specifier: ^0.18.0
+        version: 0.18.0(@ai-sdk/openai@4.0.102(zod@4.6.7))(@radix-ui/react-dialog@1.2.0(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(ai@7.0.153(zod@4.6.7))(cmdk@1.1.1(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       react:
         specifier: ^19.3.1
         version: 19.3.1
@@ -6524,16 +6524,16 @@ packages:
   once@1.4.0:
     resolution: {integrity: sha512-lNaJgI+2Q5URQBkccEKHTQOPaXdUxnZZElQTZY0MFUAuaEqe1E+Nyvgdz/aIyNi6Z9MzO5dv1H8n58/GELp3+w==}
 
-  ondocs@0.10.0:
-    resolution: {integrity: sha512-Fc+iOMzaQxxPXK0s1+/NSF53YKh2WQAK6mmD2buIYGjn9rLSL++MD0KsReooay+ThrEVpRvbinrpHWDHwThkKQ==}
-    engines: {node: '>=22.12.0'}
+  ondocs@0.18.0:
+    resolution: {integrity: sha512-vq5cS7BoeiHMzl5g43EI+XvAFy9uKTrGm/xboeeMgtMy8wNJL5f6EQkBHP5EMJmZu9yvIAi10kQUVP+/ozBcVA==}
+    engines: {node: '>=22.13.0'}
     hasBin: true
     peerDependencies:
-      '@ai-sdk/openai': '>=4'
-      '@astrojs/starlight': '>=0.32.0'
+      '@ai-sdk/openai': ^3.0.0 || ^4.0.0
+      '@astrojs/starlight': '>=0.32.0 <1'
       '@docusaurus/core': ^3.0.0
       '@radix-ui/react-dialog': ^1.1.23
-      ai: ^7.0.0
+      ai: ^6.0.16 || ^7.0.95
       astro: ^5.0.0 || ^6.0.0 || ^7.0.0
       cmdk: ^1.1.1
       react: ^18.3.0 || ^19.0.0
@@ -15013,7 +15013,7 @@ snapshots:
     dependencies:
       wrappy: 1.0.2
 
-  ondocs@0.10.0(@ai-sdk/openai@4.0.102(zod@4.6.7))(@radix-ui/react-dialog@1.2.0(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(ai@7.0.153(zod@4.6.7))(cmdk@1.1.1(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1):
+  ondocs@0.18.0(@ai-sdk/openai@4.0.102(zod@4.6.7))(@radix-ui/react-dialog@1.2.0(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(ai@7.0.153(zod@4.6.7))(cmdk@1.1.1(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react-dom@19.3.1(react@19.3.1))(react@19.3.1):
     dependencies:
       ai: 7.0.153(zod@4.6.7)
       github-slugger: 2.0.0
