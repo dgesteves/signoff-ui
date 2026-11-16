@@ -18,7 +18,7 @@ What each import adds to an app's JavaScript, minified and gzipped. React and Re
 | `useDiffReview` (the review without markup)                        |  16.4 kB |
 | `ApprovalCard`                                                     |  22.4 kB |
 | `ToolCallTimeline`                                                 |  22.8 kB |
-| `AgentMessage` from `/custom-markdown` (with your own renderer)    |  37.0 kB |
+| `AgentMessage` from `/custom-markdown` (with your own renderer)    |  37.3 kB |
 | `DiffReview`                                                       |  44.3 kB |
 | `signoffTools` from `/assistant-ui` (with DiffReview, approvals)   |  55.9 kB |
 | `AgentMessage` (markdown, reasoning, timeline, approvals, sources) |  91.8 kB |

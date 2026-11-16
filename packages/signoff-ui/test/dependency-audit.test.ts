@@ -184,8 +184,6 @@ describe('the advisories pnpm audit skips', () => {
   const about: Record<string, string> = {
     'GHSA-mrhx-c7xc-m3w5': 'zod',
     'GHSA-238p-pmpm-9mq7': 'katex',
-    'GHSA-x8rm-f576-gq67': 'graphql-scalars',
-    'GHSA-rmxm-3fg6-px4f': '@hono/node-server',
   };
 
   /** The comment right above an advisory's line, as one line. */

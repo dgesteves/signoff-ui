@@ -18,6 +18,18 @@ updates:
       # rxjs stays at the exact version @ag-ui/client pins: two copies of rxjs make their Observable
       # types incompatible. Update it together with @ag-ui/client.
       - dependency-name: rxjs
+      # examples/copilotkit pins @ag-ui/client to the exact version @copilotkit/runtime pins (1.0.2, in 1.83.0
+      # and in 1.88.0, the latest): another version installs a second copy, and its route no longer
+      # type-checks. This config covers the whole workspace, so the library and the site, which can take
+      # newer @ag-ui releases, move by hand too: update them together with CopilotKit and rxjs.
+      - dependency-name: '@ag-ui/client'
+      - dependency-name: '@ag-ui/core'
+      # playwright-core 1.65 (1.65.1 too) brings Firefox 159, whose content process crashes (signal 11) when
+      # the page and Playwright's own script both read an element's aria-labelledby references: the Firefox
+      # job's pnpm smoke:playground crashes on /docs/comparison, on main's build too. The fix has to come
+      # from Firefox (https://github.com/microsoft/playwright/issues/43967): take the release that has it.
+      - dependency-name: playwright-core
+        versions: ['1.65.x']
       # @types/node follows the Node major the code runs and is tested on (24), not the newest one:
       # newer types would let code use APIs that Node 24 doesn't have. Move it with .nvmrc and CI.
       - dependency-name: '@types/node'
