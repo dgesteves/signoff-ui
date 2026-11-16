@@ -2,6 +2,14 @@
 
 Until 0.4.3 this package was published as `@dgesteves/agent-ui-kit`. Its entries below keep the links and names of that time.
 
+## 0.14.1
+
+### Patch Changes
+
+- [#258](https://github.com/dgesteves/signoff-ui/pull/258) [`3a72e12`](https://github.com/dgesteves/signoff-ui/commit/3a72e126e20b45e36facb8442c555cba6fb0eabc) - `signoff-ui/acp` takes the `session` tool call content that ACP's unstable schema added in `@agentclientprotocol/sdk` 2.6: a reference to another session the call works on, such as a subagent it started. `AcpToolCallContent` includes `{ type: 'session', sessionId }`, so a tool call or update typed with the SDK's `/unstable` types fits `AcpToolCall` again, and its content type-checks as `fromAcpDiffs`' argument. With SDK 2.6 and later, both failed to type-check. The reference is left out of the message, as terminal content is: a call's output is still its `rawOutput`, else the text of its content. Objects from older SDK versions fit as before.
+
+- [#259](https://github.com/dgesteves/signoff-ui/pull/259) [`62e454b`](https://github.com/dgesteves/signoff-ui/commit/62e454b4050f695e418222a673528775e0409bea) - `ToolApprovalCard`, and so `AgentMessage` with an `approvalPolicy`, no longer answers a call that the AI SDK's `toolApproval` decided. The SDK streams that decision as a request marked `isAutomatic`, then its response. When a render fell between the two and a rule of the page's policy covered the call, the card answered it from the policy too. It sent a second answer through `onToolApproval`, `approved: true` even for a call the SDK had denied, and the card read "Allowed by your rule" instead of "Auto-approved". Next.js 16.4.6 compresses route handler responses, and the two chunks arrive apart more often there. The card now leaves those calls to the SDK, as `ToolApprovalBatch` already did.
+
 ## 0.14.0
 
 ### Minor Changes
