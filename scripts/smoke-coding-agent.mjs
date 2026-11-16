@@ -123,8 +123,15 @@ async function run(page, check) {
   // The listing and both reads: allowed by the default rules on the server, nobody asked.
   const card = page.locator('[data-slot="signoff-approval-card"][data-status="pending"]');
   await card.waitFor({ timeout: 30_000 });
+  // The server's toolApproval decided them, so each reads Auto-approved, not "Allowed by your rule": the
+  // page's own rules must leave a decision the SDK made alone.
   const auto = await page.locator('[data-slot="signoff-approval-card"]', { hasText: 'Auto-approved' }).count();
-  if (auto !== 3) throw new Error(`${auto} calls were approved by a rule before the tests, not 3`);
+  if (auto !== 3) {
+    const cards = await page.locator('[data-slot="signoff-approval-card"]').allInnerTexts();
+    throw new Error(
+      `${auto} calls were approved by a rule before the tests, not 3:\n  ${cards.map((c) => c.replace(/\s+/g, ' ')).join('\n  ')}`,
+    );
+  }
   if (!(await card.innerText()).includes('npm test')) throw new Error('The card does not ask about npm test');
   await check('the approval card');
   // The card has focus: S approves for this session, which leaves a rule.

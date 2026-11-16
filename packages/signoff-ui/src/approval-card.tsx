@@ -1286,9 +1286,16 @@ export function ToolApprovalCard({
   const L = useLabels(LABELS, props.labels).approvalCard;
   const status = getApprovalStatus(part);
   const request = approvalRequestOf(part);
-  // A rule decides this request: answer it from the policy, once, without asking anyone.
+  // The SDK's policy decided it (`toolApproval`): its response follows the request in the stream.
+  const automatic = isAutomaticApproval(part.approval);
+  // A rule decides this request: answer it from the policy, once, without asking anyone. Not one the
+  // SDK decided: answering it too would send a second response, and label the SDK's decision as ours.
   const ruled =
-    !!policy && status === 'pending' && !!request && !!evaluateRules(policy.rules, request.toolName, request.input);
+    !!policy &&
+    status === 'pending' &&
+    !automatic &&
+    !!request &&
+    !!evaluateRules(policy.rules, request.toolName, request.input);
   const answered = useRef<string | undefined>(undefined);
   useEffect(() => {
     if (!ruled || !request || !policy?.ready || answered.current === request.id) return;
@@ -1298,7 +1305,6 @@ export function ToolApprovalCard({
     void onRespond(toResponse(outcome));
   });
   if (!status || !part.approval || !request) return null;
-  const automatic = isAutomaticApproval(part.approval);
   if (automatic && status === 'pending') return null;
   if (ruled) return null;
   const approvalId = part.approval.id;
