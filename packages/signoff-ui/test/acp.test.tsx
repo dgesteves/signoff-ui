@@ -149,6 +149,34 @@ describe('reduceAcpTurn', () => {
     expect(parts[3]).toMatchObject({ state: 'output-available', output: { status: 200 } });
     expect(parts[4]).toMatchObject({ state: 'output-error', errorText: 'Failed' });
   });
+
+  it('leaves out the session a call refers to, such as the subagent it started (unstable ACP)', () => {
+    const subagent = { type: 'session' as const, sessionId: 'sub-1' };
+    const turn = play(
+      {
+        sessionUpdate: 'tool_call',
+        toolCallId: 'task',
+        title: 'Review the diff',
+        kind: 'other',
+        status: 'in_progress',
+        content: [subagent],
+      },
+      {
+        sessionUpdate: 'tool_call_update',
+        toolCallId: 'task',
+        status: 'completed',
+        content: [subagent, { type: 'content', content: { type: 'text', text: 'No issues found.' } }],
+      },
+      { sessionUpdate: 'tool_call', toolCallId: 'wait', kind: 'other', status: 'completed', content: [subagent] },
+      { sessionUpdate: 'tool_call', toolCallId: 'gone', kind: 'other', status: 'failed', content: [subagent] },
+    );
+    expect(turn.toolCalls.task?.content).toEqual([subagent, expect.objectContaining({ type: 'content' })]);
+    const parts = toAcpMessage(turn).parts as ToolPart[];
+    expect(parts[0]).toMatchObject({ state: 'output-available', output: 'No issues found.' });
+    expect(parts[1]).toMatchObject({ state: 'output-available', output: null });
+    expect(parts[2]).toMatchObject({ state: 'output-error', errorText: 'Failed' });
+    expect(fromAcpDiffs(turn.toolCalls.task?.content)).toEqual([]);
+  });
 });
 
 describe('permission requests', () => {
@@ -405,6 +433,7 @@ describe('diff content', () => {
       { type: 'diff' as const, path: '/elsewhere/a.ts', oldText: null, newText: 'a\n' },
       { type: 'content' as const, content: { type: 'text', text: 'not a file' } },
       { type: 'terminal' as const, terminalId: 'term-1' },
+      { type: 'session' as const, sessionId: 'sub-1' },
     ];
     expect(fromAcpDiffs(content, { root: '/repo/' })).toEqual([
       { path: 'lib/format.ts', oldContent: edit.content[0]!.oldText, newContent: edit.content[0]!.newText },
