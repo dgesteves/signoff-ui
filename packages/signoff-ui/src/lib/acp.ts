@@ -21,11 +21,17 @@ export interface AcpContentBlock {
   text?: string;
 }
 
-/** ACP `ToolCallContent`: content, a diff, or a terminal. */
+/**
+ * ACP `ToolCallContent`: content, a diff, a terminal, or a session. A session is a reference to another
+ * session the call works on, such as a subagent it started, in ACP's unstable schema (`@agentclientprotocol/sdk`
+ * 2.6 and later, from `/unstable`). Text content is the call's output or error, and diffs are `DiffReview`
+ * files (`fromAcpDiffs`); terminals and sessions are left out of the message.
+ */
 export type AcpToolCallContent =
   | { type: 'content'; content: AcpContentBlock }
   | { type: 'diff'; path: string; oldText?: string | null | undefined; newText: string }
-  | { type: 'terminal'; terminalId: string };
+  | { type: 'terminal'; terminalId: string }
+  | { type: 'session'; sessionId: string };
 
 /** ACP `ToolCallStatus`. */
 export type AcpToolCallStatus = 'pending' | 'in_progress' | 'completed' | 'failed';

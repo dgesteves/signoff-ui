@@ -165,7 +165,7 @@ When the agent sends one `allow_always` option, Always answers it, whatever it g
 | `endAcpTurn` with `stopReason: 'cancelled'`           | the text or reasoning it was writing stays `streaming`, cut off, so the run reads as stopped                  |
 | `diff` content (`fromAcpDiffs`)                       | `DiffReview` files, paths relative to `root` (the session's `cwd`), a diff with no `oldText` a new file       |
 
-User message chunks, plans, available commands, mode, config and usage updates are left out of the message. `toAcpDiffs` goes the other way, from files to diff content.
+User message chunks, plans, available commands, mode, config and usage updates are left out of the message, and so are a tool call's terminal content and its references to other sessions, such as a subagent it started (ACP's unstable schema, `@agentclientprotocol/sdk` 2.6 and later). `toAcpDiffs` goes the other way, from files to diff content.
 
 ## What it does not do yet
 
