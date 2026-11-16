@@ -1,6 +1,6 @@
 {
   "name": "signoff-ui",
-  "version": "0.14.0",
+  "version": "0.14.1",
   "description": "Review what your agent changed and approve what it may do: React components for multi-file diff review and tool approvals that return a result your agent acts on, for AI SDK 6 & 7, AG-UI and ACP agents, inside assistant-ui, AI Elements or your own chat.",
   "license": "MIT",
   "author": "Diogo Esteves (https://diogo-studio.com)",
