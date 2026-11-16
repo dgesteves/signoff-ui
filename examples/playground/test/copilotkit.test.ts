@@ -31,7 +31,7 @@ function imported(code: string, module: string) {
     .filter(Boolean);
 }
 
-/** CopilotKit 1.82.0's ToolCallStatus values (@copilotkit/core). */
+/** CopilotKit 1.83.0's ToolCallStatus values (@copilotkit/core). */
 const ToolCallStatus = { InProgress: 'inProgress', Executing: 'executing', Complete: 'complete' } as const;
 
 type RenderProps = {

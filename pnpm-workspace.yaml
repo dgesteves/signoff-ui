@@ -12,25 +12,38 @@ overrides:
   # undici 5 has advisories fixed only in 6.28.1 and later. provider-utils 3 uses undici's Agent and fetch,
   # the same calls provider-utils 4 makes with undici ^6.28.0, so it gets undici 6 here.
   '@ai-sdk/provider-utils@3>undici': ^6.28.1
+  # High: graphql-scalars' PhoneNumber pattern takes very long on crafted input, fixed only in 2.0.1. Only
+  # examples/copilotkit has it: @copilotkit/runtime (1.83.0 too) asks for ^1.23.0, and type-graphql 2.0.0-rc.1,
+  # which it pins, for ^1.22.4. They import only GraphQLJSON, GraphQLJSONObject, GraphQLTimestamp and
+  # GraphQLDateTimeISO, which 2.0.1 exports unchanged (the runtime builds the same GraphQL schema with it);
+  # 2.0.0's breaking changes drop graphql below 16 (the example has 16) and Node.js 20. Remove this when both
+  # ask for graphql-scalars 2.
+  'graphql-scalars@<2.0.1': ^2.0.1
+  # @hono/node-server 1.x: a backslash in the path is read as a separator (fixed in 1.19.18), and serveStatic
+  # decodes the path twice (fixed only in 2.1.3). @copilotkit/runtime (1.83.0 too) lists ^1.13.5 but never
+  # imports it, and the example serves through Next.js, so it gets the 2.x that @modelcontextprotocol/sdk
+  # already uses here. Remove this when @copilotkit/runtime asks for 2.1.6 or later.
+  '@copilotkit/runtime>@hono/node-server': ^2.1.6
 # `pnpm audit` (ci.yml for the production dependencies, audit.yml for all of them) skips these advisories: no
 # release fixes them within the range the packages that bring them ask for. Remove one once a release does.
 auditConfig:
   ignoreGhsas:
-    # minimatch (moderate): denial of service via globparts amplification, fixed only in minimatch 11.0.1.
-    # Dev-only: eslint-plugin-jsx-a11y's eslint asks for minimatch ^3, which has no fixed release, and the
-    # published package never loads it. Remove this when eslint moves to minimatch 11.
+    # minimatch (moderate): denial of service via globparts amplification, in 7.0.0 to 11.0.0, fixed only in
+    # 11.0.1. Dev-only: eslint 10.14 and its @eslint/config-array, typescript-eslint's typescript-estree (8.72.2,
+    # the latest, too) and shadcn's @ts-morph/common ask for minimatch ^10, and the published package never loads
+    # it. minimatch 11 removes makeRe() and the regexp API, so it isn't forced on them. eslint 10.15 moves to
+    # minimatch 11: remove this when typescript-estree and @ts-morph/common do too.
     - GHSA-g3hv-75wg-m249
     # zod (high): memory exhaustion validating oversized constrained collections, fixed only in zod 4.6.6. The
     # published signoff-ui package doesn't depend on zod, the registry items reach it only as ai's peer (the app's
-    # own zod), and the examples that use zod ask for ^4.6.7. zod 3 comes only through @ag-ui/client and
-    # @ag-ui/proto, in signoff-ui's dev dependencies and in the site, where they run only in the browser, on the
-    # components page's scripted AG-UI run; and, in examples/copilotkit, through those and @copilotkit/runtime,
-    # @copilotkit/shared, @copilotkit/a2ui-renderer and @a2ui/web_core, which its API route loads when you run the
-    # example. No route of the site loads zod 3. The latest @ag-ui/client (1.0.3) and @copilotkit/runtime (1.82.0)
-    # still ask for zod 3: remove this when they move to zod 4.
+    # own zod), and the examples that use zod ask for ^4.6.7. signoff-ui's dev dependencies and the site are on
+    # @ag-ui/client 1.0.4, which takes the app's zod, so zod 3 comes only in examples/copilotkit: through
+    # @copilotkit/runtime, @copilotkit/shared, @copilotkit/a2ui-renderer, @a2ui/web_core and the @ag-ui/client
+    # 1.0.2 that CopilotKit pins, which its API route loads when you run the example. @copilotkit/runtime (1.83.0,
+    # and 1.88.0, the latest) still asks for zod 3 and pins @ag-ui/client 1.0.2: remove this when it moves on.
     - GHSA-mrhx-c7xc-m3w5
     # katex (low): prototype pollution already in the page can bypass its `trust` option, fixed in 0.18.2.
-    # Only examples/copilotkit has it: @copilotkit/react-core (1.82.0 too) and the streamdown, mermaid and
+    # Only examples/copilotkit has it: @copilotkit/react-core (1.83.0 too) and the streamdown, mermaid and
     # math plugins it brings all ask for katex ^0.16.
     - GHSA-238p-pmpm-9mq7
     # deepmerge (low): mergeObject() allows prototype poisoning of the objects it returns. Only the shadcn CLI
@@ -39,16 +52,6 @@ auditConfig:
     # deepmerge release fixes it (4.3.1, the latest, is affected), and shadcn 4.23.0, the latest, still asks for
     # ^4.3.1: remove this when shadcn drops deepmerge or a fixed release exists.
     - GHSA-gcqx-w48m-w2h4
-    # graphql-scalars (high): the PhoneNumber scalar's pattern takes very long on crafted input, fixed only in
-    # 2.0.1. Only examples/copilotkit has it: @copilotkit/runtime (1.82.0 too) asks for ^1.23.0, and type-graphql
-    # 2.0.0-rc.1, which it pins, for ^1.22.4. They use only its JSON, JSONObject, Timestamp and DateTimeISO
-    # scalars, never PhoneNumber: remove this when both move to graphql-scalars 2.
-    - GHSA-x8rm-f576-gq67
-    # @hono/node-server (moderate): serveStatic decodes the request path twice, so a middleware on static paths
-    # can be bypassed. Every release from 1.19.10 on is affected until 2.1.3. Only examples/copilotkit has an
-    # affected one: @copilotkit/runtime (1.82.0 too) lists ^1.13.5 but never imports it, and the example serves
-    # through Next.js. Remove this when @copilotkit/runtime moves to 2.1.3 or later.
-    - GHSA-rmxm-3fg6-px4f
 allowBuilds:
   '@parcel/watcher': false
   '@scarf/scarf': false
