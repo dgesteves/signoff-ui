@@ -124,7 +124,7 @@
   "devDependencies": {
     "@ag-ui/client": "^1.0.4",
     "@ag-ui/core": "^1.0.4",
-    "@agentclientprotocol/sdk": "^2.6.0",
+    "@agentclientprotocol/sdk": "^2.7.0",
     "@arethetypeswrong/cli": "^0.18.5",
     "@assistant-ui/react": "^0.15.27",
     "@tailwindcss/cli": "^4.3.5",
@@ -139,7 +139,7 @@
     "ai": "^7.0.172",
     "axe-core": "^4.14.0",
     "jsdom": "^31.0.1",
-    "postcss": "^8.5.32",
+    "postcss": "^8.5.33",
     "postcss-selector-parser": "^7.2.1",
     "publint": "^0.3.25",
     "react": "^19.3.1",
