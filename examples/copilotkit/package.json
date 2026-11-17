@@ -12,7 +12,7 @@
     "@ag-ui/client": "1.0.2",
     "@copilotkit/react-core": "1.83.0",
     "@copilotkit/runtime": "1.83.0",
-    "ai": "^7.0.172",
+    "ai": "^7.0.173",
     "next": "^16.4.6",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
